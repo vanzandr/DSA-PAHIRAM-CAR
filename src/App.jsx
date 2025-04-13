@@ -13,11 +13,13 @@ import CarManagement from "./pages/admin/CarManagement"
 import AdminBookings from "./pages/admin/AdminBookings"
 import AdminSettings from "./pages/admin/AdminSettings"
 import AdminReservations from "./pages/admin/AdminReservations"
+import AdminReports from "./pages/admin/AdminReports"
 import UserProfile from "./pages/user/UserProfile"
 import ReservedCars from "./pages/user/ReservedCars"
 import RentedCars from "./pages/user/RentedCars"
 import UserSettings from "./pages/user/UserSettings"
 import { AuthProvider, useAuth } from "./context/AuthContext"
+import { NotificationProvider } from "./context/NotificationContext"
 
 // Protected route component
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
@@ -85,6 +87,14 @@ function AppRoutes() {
             }
           />
           <Route
+            path="/admin/reports"
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <AdminReports />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/admin/settings"
             element={
               <ProtectedRoute requireAdmin={true}>
@@ -135,10 +145,11 @@ function AppRoutes() {
 function App() {
   return (
     <AuthProvider>
-      <AppRoutes />
+      <NotificationProvider>
+        <AppRoutes />
+      </NotificationProvider>
     </AuthProvider>
   )
 }
 
 export default App
-

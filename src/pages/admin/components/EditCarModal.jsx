@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { X, Plus, ImageIcon } from "lucide-react"
 
 export default function EditCarModal({ car, onClose }) {
     const [formData, setFormData] = useState({
@@ -15,7 +16,8 @@ export default function EditCarModal({ car, onClose }) {
         description: "",
     })
 
-    const [carImage, setCarImage] = useState(null)
+    const [carImages, setCarImages] = useState([])
+    const [previewImages, setPreviewImages] = useState([])
 
     useEffect(() => {
         if (car) {
@@ -27,10 +29,19 @@ export default function EditCarModal({ car, onClose }) {
                 seats: car.seats || 4,
                 price: car.price || 0,
                 plateNumber: car.plateNumber || "",
-                year: new Date().getFullYear(),
+                year: car.year || new Date().getFullYear(),
                 description:
+                    car.description ||
                     "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
             })
+
+            // Initialize images from car data
+            if (car.images && car.images.length > 0) {
+                setPreviewImages(car.images)
+            } else if (car.imageUrl) {
+                // For backward compatibility
+                setPreviewImages([car.imageUrl])
+            }
         }
     }, [car])
 
@@ -42,10 +53,50 @@ export default function EditCarModal({ car, onClose }) {
         }))
     }
 
+    const handleImageUpload = (e) => {
+        const files = Array.from(e.target.files)
+        if (files.length === 0) return
+
+        // Create preview URLs for the images
+        const newPreviewImages = files.map((file) => URL.createObjectURL(file))
+
+        // Add new images to existing ones
+        setCarImages((prev) => [...prev, ...files])
+        setPreviewImages((prev) => [...prev, ...newPreviewImages])
+    }
+
+    const removeImage = (index) => {
+        // Remove the image at the specified index
+        setCarImages((prev) => prev.filter((_, i) => i !== index))
+        setPreviewImages((prev) => {
+            // Only revoke URL if it's a blob URL (not an existing image URL)
+            if (prev[index].startsWith("blob:")) {
+                URL.revokeObjectURL(prev[index])
+            }
+            return prev.filter((_, i) => i !== index)
+        })
+    }
+
     const handleSubmit = (e) => {
         e.preventDefault()
-        // Process editing car
-        console.log("Car updated:", formData)
+
+        // Process editing car with multiple images
+        const updatedCar = {
+            ...car,
+            name: formData.carName,
+            type: formData.carType,
+            fuelType: formData.fuelType,
+            transmission: formData.transmission,
+            seats: formData.seats,
+            price: formData.price,
+            plateNumber: formData.plateNumber,
+            year: formData.year,
+            description: formData.description,
+            images: previewImages,
+            imageUrl: previewImages[0] || car.imageUrl, // Keep the first image as the main one
+        }
+
+        console.log("Car updated:", updatedCar)
         onClose()
     }
 
@@ -53,42 +104,59 @@ export default function EditCarModal({ car, onClose }) {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto">
                 <div className="grid grid-cols-1 md:grid-cols-2">
-                    {/* Car Image */}
-                    <div className="bg-gray-50 p-8 flex flex-col items-center justify-center">
-                        <div className="w-full h-64 bg-gray-100 rounded-lg flex items-center justify-center mb-4">
-                            {carImage ? (
-                                <img
-                                    src={URL.createObjectURL(carImage) || "/placeholder.svg"}
-                                    alt="Car Preview"
-                                    className="max-w-full max-h-full object-contain"
-                                />
-                            ) : car?.imageUrl ? (
-                                <img
-                                    src={car.imageUrl || "/placeholder.svg"}
-                                    alt={car.name}
-                                    className="max-w-full max-h-full object-contain"
-                                />
+                    {/* Car Images */}
+                    <div className="bg-gray-50 p-8 flex flex-col">
+                        <h3 className="text-lg font-semibold mb-4">Car Images</h3>
+
+                        {/* Image Preview Grid */}
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                            {previewImages.length > 0 ? (
+                                previewImages.map((url, index) => (
+                                    <div key={index} className="relative h-40 bg-gray-100 rounded-lg overflow-hidden">
+                                        <img
+                                            src={url || "/placeholder.svg"}
+                                            alt={`Car Preview ${index + 1}`}
+                                            className="w-full h-full object-cover"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => removeImage(index)}
+                                            className="absolute top-2 right-2 bg-black bg-opacity-70 text-white p-1 rounded-full hover:bg-opacity-90"
+                                        >
+                                            <X size={16} />
+                                        </button>
+                                    </div>
+                                ))
                             ) : (
-                                <div className="text-center p-4">
-                                    <p className="text-gray-500">No image selected</p>
+                                <div className="col-span-2 h-40 bg-gray-100 rounded-lg flex items-center justify-center">
+                                    <div className="text-center p-4">
+                                        <ImageIcon className="h-10 w-10 mx-auto text-gray-400 mb-2" />
+                                        <p className="text-gray-500">No images selected</p>
+                                    </div>
                                 </div>
                             )}
                         </div>
 
                         <button
                             type="button"
-                            onClick={() => document.getElementById("carImageUpload").click()}
-                            className="px-4 py-2 bg-black text-white rounded-md"
+                            onClick={() => document.getElementById("carImagesUpload").click()}
+                            className="flex items-center justify-center px-4 py-2 bg-black text-white rounded-md"
                         >
-                            Upload Image
+                            <Plus size={18} className="mr-2" />
+                            Add Images
                         </button>
                         <input
-                            id="carImageUpload"
+                            id="carImagesUpload"
                             type="file"
                             accept="image/*"
+                            multiple
                             className="hidden"
-                            onChange={(e) => setCarImage(e.target.files[0])}
+                            onChange={handleImageUpload}
                         />
+
+                        <p className="text-sm text-gray-500 mt-2">
+                            You can upload multiple images. The first image will be used as the main display image.
+                        </p>
                     </div>
 
                     {/* Car Form */}
@@ -235,4 +303,3 @@ export default function EditCarModal({ car, onClose }) {
         </div>
     )
 }
-

@@ -1,8 +1,9 @@
 "use client"
 
-import { Car, User, LogOut } from "lucide-react"
+import { Car, User, LogOut, ChevronDown } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
+import DropdownMenu from "./DropdownMenu"
 
 export default function Navbar() {
   const { currentUser, logout, isAuthenticated, isAdmin } = useAuth()
@@ -14,16 +15,16 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="bg-white shadow-sm">
+    <nav className="bg-white shadow-sm sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <Link to="/" className="flex items-center">
-              <Car className="h-8 w-8 text-black" />
+              <Car className="h-6 w-6 text-black" />
               <span className="ml-2 text-xl font-bold">PahiramCar</span>
             </Link>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-6">
             <Link to="/browse-cars" className="text-gray-700 hover:text-black">
               Browse Cars
             </Link>
@@ -34,24 +35,20 @@ export default function Navbar() {
               Contact
             </Link>
 
-            {isAuthenticated ? (
+            {isAuthenticated && (
               <>
-                {isAdmin ? (
+                {isAdmin && (
                   <Link to="/admin" className="text-gray-700 hover:text-black">
                     Admin Dashboard
                   </Link>
-                ) : (
-                  <>
-                    <Link to="/reserved-cars" className="text-gray-700 hover:text-black">
-                      Reserved Cars
-                    </Link>
-                    <Link to="/rented-cars" className="text-gray-700 hover:text-black">
-                      Rented Cars
-                    </Link>
-                  </>
                 )}
-                <div className="relative group">
-                  <button className="flex items-center space-x-1 text-gray-700 hover:text-black">
+              </>
+            )}
+
+            {isAuthenticated ? (
+              <DropdownMenu
+                trigger={
+                  <div className="flex items-center space-x-2 text-gray-700 hover:text-black">
                     <div className="w-8 h-8 rounded-full overflow-hidden">
                       <img
                         src={currentUser.avatar || "/placeholder.svg"}
@@ -59,48 +56,49 @@ export default function Navbar() {
                         className="w-full h-full object-cover"
                       />
                     </div>
-                    <span>{currentUser.fullName}</span>
-                  </button>
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 hidden group-hover:block">
-                    {isAdmin ? (
-                      <>
-                        <Link to="/admin" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                          Dashboard
-                        </Link>
-                        <Link to="/admin/cars" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                          Car Management
-                        </Link>
-                        <Link to="/admin/bookings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                          Bookings
-                        </Link>
-                        <Link to="/admin/settings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                          Settings
-                        </Link>
-                      </>
-                    ) : (
-                      <>
-                        <Link
-                          to="/profile"
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-                        >
-                          <User className="h-4 w-4 mr-2" />
-                          Profile
-                        </Link>
-                        <Link to="/settings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                          Settings
-                        </Link>
-                      </>
-                    )}
-                    <button
-                      onClick={handleLogout}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-                    >
-                      <LogOut className="h-4 w-4 mr-2" />
-                      Logout
-                    </button>
+                    <span>{isAdmin ? "Admin User" : currentUser.fullName}</span>
+                    <ChevronDown className="h-4 w-4" />
                   </div>
-                </div>
-              </>
+                }
+              >
+                {isAdmin ? (
+                  <>
+                    <Link to="/admin" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                      Dashboard
+                    </Link>
+                    <Link to="/admin/cars" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                      Car Management
+                    </Link>
+                    <Link to="/admin/bookings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                      Bookings
+                    </Link>
+                    <Link to="/admin/settings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                      Settings
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      to="/profile"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                    >
+                      <User className="h-4 w-4 mr-2" />
+                      Profile
+                    </Link>
+                    <Link to="/settings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                      Settings
+                    </Link>
+                  </>
+                )}
+                <div className="border-t border-gray-100 my-1"></div>
+                <button
+                  onClick={handleLogout}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </button>
+              </DropdownMenu>
             ) : (
               <>
                 <Link to="/login" className="text-gray-700 hover:text-black px-3 py-2 rounded-md">
@@ -117,4 +115,3 @@ export default function Navbar() {
     </nav>
   )
 }
-

@@ -6,7 +6,9 @@ import CarDetails from "./CarDetails"
 import ReservationModal from "./ReservationModal"
 import { useAuth } from "../context/AuthContext"
 import { useNavigate } from "react-router-dom"
+import ImageCarousel from "./ImageCarousel"
 
+// Updated demo data with multiple images for cars
 const cars = [
     {
         id: "1",
@@ -16,8 +18,14 @@ const cars = [
         seats: 4,
         transmission: "Automatic",
         fuelType: "Gasoline",
+        images: [
+            "https://images.unsplash.com/photo-1550355291-bbee04a92027?auto=format&fit=crop&q=80&w=2156",
+            "https://images.unsplash.com/photo-1550355291-bbee04a92027?auto=format&fit=crop&q=80&w=2156",
+            "https://images.unsplash.com/photo-1550355291-bbee04a92027?auto=format&fit=crop&q=80&w=2156",
+        ],
         imageUrl: "https://images.unsplash.com/photo-1550355291-bbee04a92027?auto=format&fit=crop&q=80&w=2156",
         available: true,
+        plateNumber: "DIWATA001",
     },
     {
         id: "2",
@@ -27,6 +35,10 @@ const cars = [
         seats: 5,
         transmission: "Automatic",
         fuelType: "Gasoline",
+        images: [
+            "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&q=80&w=2070",
+            "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&q=80&w=2070",
+        ],
         imageUrl: "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&q=80&w=2070",
         available: true,
     },
@@ -38,6 +50,11 @@ const cars = [
         seats: 7,
         transmission: "Automatic",
         fuelType: "Gasoline",
+        images: [
+            "https://images.unsplash.com/photo-1533106418989-88406c7cc8ca?auto=format&fit=crop&q=80&w=2070",
+            "https://images.unsplash.com/photo-1533106418989-88406c7cc8ca?auto=format&fit=crop&q=80&w=2070",
+            "https://images.unsplash.com/photo-1533106418989-88406c7cc8ca?auto=format&fit=crop&q=80&w=2070",
+        ],
         imageUrl: "https://images.unsplash.com/photo-1533106418989-88406c7cc8ca?auto=format&fit=crop&q=80&w=2070",
         available: true,
     },
@@ -49,6 +66,10 @@ const cars = [
         seats: 7,
         transmission: "Automatic",
         fuelType: "Diesel",
+        images: [
+            "https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&q=80&w=2071",
+            "https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&q=80&w=2071",
+        ],
         imageUrl: "https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&q=80&w=2071",
         available: true,
     },
@@ -60,6 +81,10 @@ const cars = [
         seats: 5,
         transmission: "Manual",
         fuelType: "Gasoline",
+        images: [
+            "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&q=80&w=2070",
+            "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&q=80&w=2070",
+        ],
         imageUrl: "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&q=80&w=2070",
         available: true,
     },
@@ -71,6 +96,10 @@ const cars = [
         seats: 7,
         transmission: "Manual",
         fuelType: "Diesel",
+        images: [
+            "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80&w=2070",
+            "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80&w=2070",
+        ],
         imageUrl: "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80&w=2070",
         available: true,
     },
@@ -308,11 +337,10 @@ const BrowseCars = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {filteredCars.map((car) => (
                                     <div key={car.id} className="bg-white rounded-lg overflow-hidden shadow-sm">
-                                        <div className="relative">
-                                            <img
-                                                src={car.imageUrl || "/placeholder.svg"}
-                                                alt={car.name}
-                                                className="w-full h-48 object-cover"
+                                        <div className="relative h-48">
+                                            <ImageCarousel
+                                                images={car.images && car.images.length > 0 ? car.images : [car.imageUrl]}
+                                                className="h-full"
                                             />
                                             {car.available && (
                                                 <span className="absolute top-4 right-4 bg-black text-white px-3 py-1 rounded-full text-sm">
@@ -378,4 +406,3 @@ const BrowseCars = () => {
 }
 
 export default BrowseCars
-

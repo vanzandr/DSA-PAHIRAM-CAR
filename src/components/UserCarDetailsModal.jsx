@@ -1,12 +1,16 @@
 "use client"
 
 import { useState } from "react"
-import { X, Users, Sliders, Fuel, Clock, Calendar, CheckCircle, AlertCircle } from "lucide-react"
+import { X, Users, Fuel, Clock, Calendar, CheckCircle, AlertCircle } from "lucide-react"
+import ImageCarousel from "./ImageCarousel"
 
 export default function UserCarDetailsModal({ car, type = "reserved", onClose }) {
     const [selectedDays, setSelectedDays] = useState(car?.days || 7)
 
     if (!car) return null
+
+    // Prepare images array for the carousel
+    const carImages = car.images && car.images.length > 0 ? car.images : car.imageUrl ? [car.imageUrl] : []
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -19,7 +23,9 @@ export default function UserCarDetailsModal({ car, type = "reserved", onClose })
                     <div className="p-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div>
-                                <img src={car.imageUrl || "/placeholder.svg"} alt={car.name} className="w-full h-auto rounded-lg" />
+                                <div className="h-64 rounded-lg overflow-hidden">
+                                    <ImageCarousel images={carImages} className="h-full" />
+                                </div>
 
                                 {type === "rented" && (
                                     <div className="mt-4 p-4 rounded-lg border border-gray-200">
@@ -64,10 +70,6 @@ export default function UserCarDetailsModal({ car, type = "reserved", onClose })
                                     <div className="flex flex-col items-center p-3 bg-gray-50 rounded-lg">
                                         <Users size={20} className="mb-1" />
                                         <span className="text-sm">{car.seats} Seats</span>
-                                    </div>
-                                    <div className="flex flex-col items-center p-3 bg-gray-50 rounded-lg">
-                                        <Sliders size={20} className="mb-1" />
-                                        <span className="text-sm">{car.transmission}</span>
                                     </div>
                                     <div className="flex flex-col items-center p-3 bg-gray-50 rounded-lg">
                                         <Fuel size={20} className="mb-1" />
@@ -174,4 +176,3 @@ export default function UserCarDetailsModal({ car, type = "reserved", onClose })
         </div>
     )
 }
-

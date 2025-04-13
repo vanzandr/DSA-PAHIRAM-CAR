@@ -5,8 +5,9 @@ import { Search, Plus } from "lucide-react"
 import AdminSidebar from "./components/AdminSidebar"
 import AddCarModal from "./components/AddCarModal"
 import EditCarModal from "./components/EditCarModal"
+import ImageCarousel from "../../components/ImageCarousel"
 
-// Demo data for cars
+// Updated demo data for cars with multiple images
 const cars = [
     {
         id: "1",
@@ -16,6 +17,11 @@ const cars = [
         seats: 4,
         transmission: "Automatic",
         fuelType: "Gasoline",
+        images: [
+            "https://images.unsplash.com/photo-1550355291-bbee04a92027?auto=format&fit=crop&q=80&w=2156",
+            "https://images.unsplash.com/photo-1550355291-bbee04a92027?auto=format&fit=crop&q=80&w=2156",
+            "https://images.unsplash.com/photo-1550355291-bbee04a92027?auto=format&fit=crop&q=80&w=2156",
+        ],
         imageUrl: "https://images.unsplash.com/photo-1550355291-bbee04a92027?auto=format&fit=crop&q=80&w=2156",
         available: true,
         plateNumber: "DIWATA001",
@@ -28,6 +34,10 @@ const cars = [
         seats: 4,
         transmission: "Automatic",
         fuelType: "Gasoline",
+        images: [
+            "https://images.unsplash.com/photo-1550355291-bbee04a92027?auto=format&fit=crop&q=80&w=2156",
+            "https://images.unsplash.com/photo-1550355291-bbee04a92027?auto=format&fit=crop&q=80&w=2156",
+        ],
         imageUrl: "https://images.unsplash.com/photo-1550355291-bbee04a92027?auto=format&fit=crop&q=80&w=2156",
         available: true,
         plateNumber: "DIWATA002",
@@ -40,6 +50,10 @@ const cars = [
         seats: 7,
         transmission: "Automatic",
         fuelType: "Diesel",
+        images: [
+            "https://images.unsplash.com/photo-1550355291-bbee04a92027?auto=format&fit=crop&q=80&w=2156",
+            "https://images.unsplash.com/photo-1550355291-bbee04a92027?auto=format&fit=crop&q=80&w=2156",
+        ],
         imageUrl: "https://images.unsplash.com/photo-1550355291-bbee04a92027?auto=format&fit=crop&q=80&w=2156",
         available: true,
         plateNumber: "DIWATA003",
@@ -143,8 +157,11 @@ export default function CarManagement() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {cars.map((car) => (
                         <div key={car.id} className="bg-white rounded-lg overflow-hidden shadow-sm">
-                            <div className="relative">
-                                <img src={car.imageUrl || "/placeholder.svg"} alt={car.name} className="w-full h-48 object-cover" />
+                            <div className="relative h-48">
+                                <ImageCarousel
+                                    images={car.images && car.images.length > 0 ? car.images : [car.imageUrl]}
+                                    className="h-full"
+                                />
                             </div>
                             <div className="p-4">
                                 <h3 className="text-lg font-semibold">{car.name}</h3>
@@ -186,4 +203,3 @@ export default function CarManagement() {
         </div>
     )
 }
-

@@ -1,19 +1,13 @@
 import { Link } from "react-router-dom"
-import { LayoutDashboard, Car, Calendar, BookOpen, Settings } from "lucide-react"
+import { LayoutDashboard, Car, Calendar, BookOpen, Settings, BarChart } from "lucide-react"
+import { useNotifications } from "../../../context/NotificationContext"
 
 export default function AdminSidebar({ active }) {
+    const { unreadCount } = useNotifications()
+
     return (
         <div className="w-64 bg-white border-r border-gray-200 min-h-screen">
-            <div className="p-6">
-                <Link to="/" className="flex items-center">
-                    <img
-                        src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/20-qusXK8d72LtqcVlwLVgBXLFi18GLdH.png"
-                        alt="PahiramCar Logo"
-                        className="h-8 w-8"
-                    />
-                    <span className="ml-2 text-xl font-bold">PahiramCar</span>
-                </Link>
-            </div>
+            <div className="p-6">{/* Removed the PahiramCar logo and text from here */}</div>
             <nav className="mt-6">
                 <Link
                     to="/admin"
@@ -37,8 +31,8 @@ export default function AdminSidebar({ active }) {
                 >
                     <Calendar className="h-5 w-5 mr-3 text-gray-500" />
                     <span>Reservations</span>
-                    {active !== "reservations" && (
-                        <span className="ml-auto bg-black text-white text-xs px-2 py-1 rounded-full">2</span>
+                    {unreadCount > 0 && active !== "reservations" && (
+                        <span className="ml-auto bg-red-600 text-white text-xs px-2 py-1 rounded-full">{unreadCount}</span>
                     )}
                 </Link>
                 <Link
@@ -48,6 +42,13 @@ export default function AdminSidebar({ active }) {
                 >
                     <BookOpen className="h-5 w-5 mr-3 text-gray-500" />
                     <span>Bookings</span>
+                </Link>
+                <Link
+                    to="/admin/reports"
+                    className={`flex items-center px-6 py-4 ${active === "reports" ? "bg-gray-100 border-l-4 border-black" : ""}`}
+                >
+                    <BarChart className="h-5 w-5 mr-3 text-gray-500" />
+                    <span>Reports</span>
                 </Link>
                 <Link
                     to="/admin/settings"
@@ -61,4 +62,3 @@ export default function AdminSidebar({ active }) {
         </div>
     )
 }
-

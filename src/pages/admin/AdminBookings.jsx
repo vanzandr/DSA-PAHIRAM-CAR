@@ -5,7 +5,7 @@ import { Search } from "lucide-react"
 import AdminSidebar from "./components/AdminSidebar"
 import BookingDetailsModal from "./components/BookingDetailsModal"
 
-// Demo data for bookings
+// Updated demo data for bookings with more varied and accurate statuses
 const bookings = [
     {
         id: "B001",
@@ -15,6 +15,8 @@ const bookings = [
         endDate: "May 12, 2025",
         total: "₱ 24,000.00",
         status: "Ongoing",
+        paymentStatus: "Paid",
+        actionRequired: false,
     },
     {
         id: "B002",
@@ -23,7 +25,9 @@ const bookings = [
         startDate: "May 04, 2025",
         endDate: "May 12, 2025",
         total: "₱ 24,000.00",
-        status: "Due already",
+        status: "Overdue",
+        paymentStatus: "Paid",
+        actionRequired: true,
     },
     {
         id: "B003",
@@ -33,6 +37,8 @@ const bookings = [
         endDate: "May 12, 2025",
         total: "₱ 24,000.00",
         status: "Completed",
+        paymentStatus: "Paid",
+        actionRequired: false,
     },
     {
         id: "B004",
@@ -42,6 +48,8 @@ const bookings = [
         endDate: "May 12, 2025",
         total: "₱ 24,000.00",
         status: "Completed",
+        paymentStatus: "Paid",
+        actionRequired: false,
     },
     {
         id: "B005",
@@ -51,6 +59,8 @@ const bookings = [
         endDate: "May 13, 2025",
         total: "₱ 24,000.00",
         status: "Ongoing",
+        paymentStatus: "Paid",
+        actionRequired: false,
     },
     {
         id: "B006",
@@ -59,7 +69,31 @@ const bookings = [
         startDate: "May 07, 2025",
         endDate: "May 14, 2025",
         total: "₱ 24,000.00",
-        status: "Pending",
+        status: "Confirmed",
+        paymentStatus: "Pending",
+        actionRequired: true,
+    },
+    {
+        id: "B007",
+        customer: "Carlos Reyes",
+        car: "2018 Honda Civic",
+        startDate: "May 10, 2025",
+        endDate: "May 17, 2025",
+        total: "₱ 29,400.00",
+        status: "Confirmed",
+        paymentStatus: "Paid",
+        actionRequired: false,
+    },
+    {
+        id: "B008",
+        customer: "Sofia Cruz",
+        car: "2020 Ford Explorer",
+        startDate: "Apr 28, 2025",
+        endDate: "May 05, 2025",
+        total: "₱ 45,500.00",
+        status: "Cancelled",
+        paymentStatus: "Refunded",
+        actionRequired: false,
     },
 ]
 
@@ -69,8 +103,27 @@ export default function AdminBookings() {
     const [selectedBooking, setSelectedBooking] = useState(null)
     const [showModal, setShowModal] = useState(false)
 
-    const filteredBookings =
-        filter === "all" ? bookings : bookings.filter((booking) => booking.status.toLowerCase() === filter.toLowerCase())
+    // Filter bookings based on selected filter and search term
+    const filteredBookings = bookings
+        .filter((booking) => {
+            if (filter === "all") return true
+            if (filter === "confirmed") return booking.status === "Confirmed"
+            if (filter === "ongoing") return booking.status === "Ongoing"
+            if (filter === "completed") return booking.status === "Completed"
+            if (filter === "overdue") return booking.status === "Overdue"
+            if (filter === "cancelled") return booking.status === "Cancelled"
+            if (filter === "action-required") return booking.actionRequired
+            if (filter === "payment-pending") return booking.paymentStatus === "Pending"
+            return true
+        })
+        .filter((booking) => {
+            if (!searchTerm) return true
+            return (
+                booking.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                booking.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                booking.car.toLowerCase().includes(searchTerm.toLowerCase())
+            )
+        })
 
     const handleViewBooking = (booking) => {
         setSelectedBooking(booking)
@@ -80,6 +133,38 @@ export default function AdminBookings() {
     const handleCloseModal = () => {
         setShowModal(false)
         setSelectedBooking(null)
+    }
+
+    // Function to determine the status badge style
+    const getStatusBadgeClass = (status) => {
+        switch (status) {
+            case "Ongoing":
+                return "bg-green-100 text-green-800"
+            case "Overdue":
+                return "bg-red-100 text-red-800"
+            case "Confirmed":
+                return "bg-blue-100 text-blue-800"
+            case "Completed":
+                return "bg-gray-100 text-gray-800"
+            case "Cancelled":
+                return "bg-gray-100 text-gray-800"
+            default:
+                return "bg-gray-100 text-gray-800"
+        }
+    }
+
+    // Function to determine the payment status badge style
+    const getPaymentStatusBadgeClass = (status) => {
+        switch (status) {
+            case "Paid":
+                return "bg-green-100 text-green-800"
+            case "Pending":
+                return "bg-yellow-100 text-yellow-800"
+            case "Refunded":
+                return "bg-blue-100 text-blue-800"
+            default:
+                return "bg-gray-100 text-gray-800"
+        }
     }
 
     return (
@@ -97,7 +182,7 @@ export default function AdminBookings() {
                     <div className="relative max-w-md">
                         <input
                             type="text"
-                            placeholder="Search booking ID"
+                            placeholder="Search booking ID or customer"
                             className="w-full pl-10 pr-4 py-2 border rounded-md"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -108,12 +193,18 @@ export default function AdminBookings() {
 
                 {/* Filters */}
                 <div className="mb-6">
-                    <div className="flex space-x-2">
+                    <div className="flex flex-wrap gap-2">
                         <button
                             onClick={() => setFilter("all")}
                             className={`px-4 py-2 rounded-md ${filter === "all" ? "bg-black text-white" : "bg-white text-gray-700 border"}`}
                         >
                             All
+                        </button>
+                        <button
+                            onClick={() => setFilter("confirmed")}
+                            className={`px-4 py-2 rounded-md ${filter === "confirmed" ? "bg-black text-white" : "bg-white text-gray-700 border"}`}
+                        >
+                            Confirmed
                         </button>
                         <button
                             onClick={() => setFilter("ongoing")}
@@ -122,22 +213,34 @@ export default function AdminBookings() {
                             Ongoing
                         </button>
                         <button
-                            onClick={() => setFilter("pending")}
-                            className={`px-4 py-2 rounded-md ${filter === "pending" ? "bg-black text-white" : "bg-white text-gray-700 border"}`}
-                        >
-                            Pending
-                        </button>
-                        <button
                             onClick={() => setFilter("completed")}
                             className={`px-4 py-2 rounded-md ${filter === "completed" ? "bg-black text-white" : "bg-white text-gray-700 border"}`}
                         >
                             Completed
                         </button>
                         <button
-                            onClick={() => setFilter("due already")}
-                            className={`px-4 py-2 rounded-md ${filter === "due already" ? "bg-black text-white" : "bg-white text-gray-700 border"}`}
+                            onClick={() => setFilter("overdue")}
+                            className={`px-4 py-2 rounded-md ${filter === "overdue" ? "bg-black text-white" : "bg-white text-gray-700 border"}`}
                         >
                             Overdue
+                        </button>
+                        <button
+                            onClick={() => setFilter("cancelled")}
+                            className={`px-4 py-2 rounded-md ${filter === "cancelled" ? "bg-black text-white" : "bg-white text-gray-700 border"}`}
+                        >
+                            Cancelled
+                        </button>
+                        <button
+                            onClick={() => setFilter("action-required")}
+                            className={`px-4 py-2 rounded-md ${filter === "action-required" ? "bg-black text-white" : "bg-white text-gray-700 border"}`}
+                        >
+                            Action Required
+                        </button>
+                        <button
+                            onClick={() => setFilter("payment-pending")}
+                            className={`px-4 py-2 rounded-md ${filter === "payment-pending" ? "bg-black text-white" : "bg-white text-gray-700 border"}`}
+                        >
+                            Payment Pending
                         </button>
                     </div>
                 </div>
@@ -167,6 +270,9 @@ export default function AdminBookings() {
                                     Status
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Payment
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Actions
                                 </th>
                             </tr>
@@ -182,17 +288,21 @@ export default function AdminBookings() {
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{booking.total}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <span
-                                            className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                      ${booking.status === "Ongoing"
-                                                    ? "bg-green-100 text-green-800"
-                                                    : booking.status === "Due already"
-                                                        ? "bg-red-100 text-red-800"
-                                                        : booking.status === "Pending"
-                                                            ? "bg-yellow-100 text-yellow-800"
-                                                            : "bg-gray-100 text-gray-800"
-                                                }`}
+                                            className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(booking.status)}`}
                                         >
                                             {booking.status}
+                                        </span>
+                                        {booking.actionRequired && (
+                                            <span className="ml-2 px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                                !
+                                            </span>
+                                        )}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <span
+                                            className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getPaymentStatusBadgeClass(booking.paymentStatus)}`}
+                                        >
+                                            {booking.paymentStatus}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -212,4 +322,3 @@ export default function AdminBookings() {
         </div>
     )
 }
-

@@ -3,9 +3,11 @@
 import { useState } from "react"
 import { X, Calendar, Clock } from "lucide-react"
 import { useAuth } from "../context/AuthContext"
+import { useNotifications } from "../context/NotificationContext"
 
 export default function ReservationModal({ car, onClose, onReserve }) {
     const { currentUser, isAuthenticated } = useAuth()
+    const { addNotification } = useNotifications()
     const [selectedDays, setSelectedDays] = useState(7)
     const [startDate, setStartDate] = useState("")
     const [formData, setFormData] = useState({
@@ -37,7 +39,9 @@ export default function ReservationModal({ car, onClose, onReserve }) {
         }
 
         // Create reservation object
+        const reservationId = `R${Date.now().toString().slice(-6)}`
         const reservation = {
+            id: reservationId,
             carId: car.id,
             carName: car.name,
             carType: car.type,
@@ -51,6 +55,22 @@ export default function ReservationModal({ car, onClose, onReserve }) {
             status: "Reserved",
             timestamp: new Date().toISOString(),
         }
+
+        // Create notification for admin
+        addNotification({
+            type: "reservation",
+            title: "New Reservation",
+            message: `${formData.fullName} reserved a ${car.name}`,
+            data: {
+                reservationId,
+                carId: car.id,
+                carName: car.name,
+                customerName: formData.fullName,
+                startDate,
+                days: selectedDays,
+                totalPrice,
+            },
+        })
 
         // Call the onReserve callback with the reservation data
         if (onReserve) {

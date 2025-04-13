@@ -19,6 +19,38 @@ export default function BookingDetailsModal({ booking, onClose }) {
         setShowContractImage(false)
     }
 
+    // Get status badge class based on booking status
+    const getStatusBadgeClass = (status) => {
+        switch (status) {
+            case "Ongoing":
+                return "bg-green-100 text-green-800"
+            case "Overdue":
+                return "bg-red-100 text-red-800"
+            case "Confirmed":
+                return "bg-blue-100 text-blue-800"
+            case "Completed":
+                return "bg-gray-100 text-gray-800"
+            case "Cancelled":
+                return "bg-gray-100 text-gray-800"
+            default:
+                return "bg-gray-100 text-gray-800"
+        }
+    }
+
+    // Get payment status badge class
+    const getPaymentStatusBadgeClass = (status) => {
+        switch (status) {
+            case "Paid":
+                return "bg-green-100 text-green-800"
+            case "Pending":
+                return "bg-yellow-100 text-yellow-800"
+            case "Refunded":
+                return "bg-blue-100 text-blue-800"
+            default:
+                return "bg-gray-100 text-gray-800"
+        }
+    }
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto">
@@ -61,11 +93,11 @@ export default function BookingDetailsModal({ booking, onClose }) {
                         <div className="mt-4 grid grid-cols-2 gap-4">
                             <div>
                                 <h3 className="font-medium mb-2">Start Date & Time</h3>
-                                <p className="text-gray-700">01/24/2024 10:00 AM</p>
+                                <p className="text-gray-700">{booking?.startDate || "01/24/2024 10:00 AM"}</p>
                             </div>
                             <div>
                                 <h3 className="font-medium mb-2">End Date & Time</h3>
-                                <p className="text-gray-700">01/24/2024 10:00 AM</p>
+                                <p className="text-gray-700">{booking?.endDate || "01/24/2024 10:00 AM"}</p>
                             </div>
                         </div>
                     </div>
@@ -78,7 +110,7 @@ export default function BookingDetailsModal({ booking, onClose }) {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <h3 className="text-sm font-medium text-gray-700 mb-1">Renter's Full Name</h3>
-                                    <p className="text-gray-900">Diwata Pares Overcook</p>
+                                    <p className="text-gray-900">{booking?.customer || "Diwata Pares Overcook"}</p>
                                 </div>
 
                                 <div>
@@ -116,20 +148,38 @@ export default function BookingDetailsModal({ booking, onClose }) {
                                 </div>
                                 <div className="flex justify-between mb-2">
                                     <span className="text-gray-600">Payment Method</span>
-                                    <span>Cash</span>
+                                    <span>{booking?.paymentMethod || "Cash"}</span>
                                 </div>
                                 <div className="flex justify-between font-bold">
                                     <span>Total</span>
-                                    <span>₱ 31,500.00</span>
+                                    <span>{booking?.total || "₱ 31,500.00"}</span>
                                 </div>
                             </div>
 
                             <div>
                                 <h3 className="text-sm font-medium text-gray-700 mb-1">Status</h3>
-                                <span className="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                    Ongoing
+                                <span
+                                    className={`px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full ${getStatusBadgeClass(booking?.status)}`}
+                                >
+                                    {booking?.status || "Ongoing"}
                                 </span>
+                                {booking?.actionRequired && (
+                                    <span className="ml-2 px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                        Action Required
+                                    </span>
+                                )}
                             </div>
+
+                            {booking?.paymentStatus && (
+                                <div className="mt-2">
+                                    <h3 className="text-sm font-medium text-gray-700 mb-1">Payment Status</h3>
+                                    <span
+                                        className={`px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full ${getPaymentStatusBadgeClass(booking.paymentStatus)}`}
+                                    >
+                                        {booking.paymentStatus}
+                                    </span>
+                                </div>
+                            )}
 
                             <div className="flex justify-end">
                                 <button onClick={onClose} className="px-4 py-2 bg-black text-white rounded-md">
@@ -179,4 +229,3 @@ export default function BookingDetailsModal({ booking, onClose }) {
         </div>
     )
 }
-

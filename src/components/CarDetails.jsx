@@ -2,11 +2,15 @@
 
 import { useState } from "react"
 import { X, Users, Sliders, Fuel, Clock } from "lucide-react"
+import ImageCarousel from "./ImageCarousel"
 
 export default function CarDetails({ car, onClose }) {
     const [selectedDays, setSelectedDays] = useState(3)
 
     if (!car) return null
+
+    // Prepare images array for the carousel
+    const carImages = car.images && car.images.length > 0 ? car.images : car.imageUrl ? [car.imageUrl] : []
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -19,7 +23,9 @@ export default function CarDetails({ car, onClose }) {
                     <div className="p-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div>
-                                <img src={car.imageUrl || "/placeholder.svg"} alt={car.name} className="w-full h-auto rounded-lg" />
+                                <div className="h-64 rounded-lg overflow-hidden">
+                                    <ImageCarousel images={carImages} className="h-full" />
+                                </div>
                             </div>
 
                             <div>
@@ -88,10 +94,8 @@ export default function CarDetails({ car, onClose }) {
                         <div className="mt-8">
                             <h3 className="text-lg font-semibold mb-4">Description</h3>
                             <p className="text-gray-600">
-                                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et
-                                dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip
-                                ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu
-                                fugiat nulla pariatur. Excepteur sint occaecat cupidatat non.
+                                {car.description ||
+                                    "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non."}
                             </p>
                         </div>
                     </div>
@@ -100,4 +104,3 @@ export default function CarDetails({ car, onClose }) {
         </div>
     )
 }
-

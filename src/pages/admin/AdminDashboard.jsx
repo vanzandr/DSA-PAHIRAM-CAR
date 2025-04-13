@@ -2,6 +2,7 @@
 import { Link } from "react-router-dom"
 import { useAuth } from "../../context/AuthContext"
 import AdminSidebar from "./components/AdminSidebar"
+import AdminNotifications from "../../components/AdminNotifications"
 
 // Demo data for the admin dashboard
 const recentBookings = [
@@ -51,9 +52,14 @@ export default function AdminDashboard() {
             <AdminSidebar active="dashboard" />
 
             <div className="flex-1 p-8">
-                <div className="mb-8">
-                    <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-                    <p className="text-gray-600">Manage your car rental business</p>
+                <div className="mb-8 flex justify-between items-center">
+                    <div>
+                        <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+                        <p className="text-gray-600">Manage your car rental business</p>
+                    </div>
+                    <div className="flex items-center">
+                        <AdminNotifications />
+                    </div>
                 </div>
 
                 {/* Stats Cards */}
@@ -177,4 +183,3 @@ export default function AdminDashboard() {
         </div>
     )
 }
-
