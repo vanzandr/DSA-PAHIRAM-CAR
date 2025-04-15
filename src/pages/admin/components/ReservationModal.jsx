@@ -1,9 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useBookings } from "../../../context/BookingContext"
+import { useCars } from "../../../context/CarContext"
 import PaymentModal from "./PaymentModal"
 
 export default function ReservationModal({ reservation, onClose }) {
+    const { addBooking } = useBookings()
+    const { getCarById } = useCars()
+
     const [formData, setFormData] = useState({
         fullName: "Diwata Pares Overcook",
         contactNumber: "63912-345-6789",
@@ -15,6 +20,14 @@ export default function ReservationModal({ reservation, onClose }) {
     const [contractImage, setContractImage] = useState(null)
     const [showPaymentModal, setShowPaymentModal] = useState(false)
     const [bookingData, setBookingData] = useState(null)
+    const [car, setCar] = useState(null)
+
+    useEffect(() => {
+        if (reservation && reservation.carId) {
+            const carData = getCarById(reservation.carId)
+            setCar(carData)
+        }
+    }, [reservation])
 
     const handleChange = (e) => {
         const { name, value } = e.target
@@ -26,16 +39,18 @@ export default function ReservationModal({ reservation, onClose }) {
 
     const handleSubmit = (e) => {
         e.preventDefault()
+
         // Prepare booking data
         const booking = {
-            carName: reservation?.car || "2016 Toyota Camry",
+            carId: reservation.carId,
+            carName: car ? car.name : reservation.car,
             customerName: formData.fullName,
             contactNumber: formData.contactNumber,
             licenseId: formData.licenseId,
             paymentMethod: formData.paymentMethod,
-            price: 4500,
-            days: 7,
-            totalAmount: 31500,
+            startDate: reservation.startDate,
+            endDate: reservation.endDate,
+            totalPrice: reservation.totalPrice || car.price * 7,
         }
 
         setBookingData(booking)
@@ -43,13 +58,31 @@ export default function ReservationModal({ reservation, onClose }) {
     }
 
     const handlePaymentComplete = (paymentDetails) => {
-        console.log("Payment completed:", paymentDetails)
-        console.log("Booking processed:", bookingData)
+        // Add payment details to booking
+        const completeBooking = {
+            ...bookingData,
+            paymentStatus: "Paid",
+            paymentMethod: paymentDetails.method,
+        }
+
+        // Add booking to context
+        addBooking(completeBooking)
+
         onClose()
     }
 
     const handleClosePaymentModal = () => {
         setShowPaymentModal(false)
+    }
+
+    if (!reservation || !car) {
+        return (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                <div className="bg-white rounded-lg p-8">
+                    <p>Loading reservation details...</p>
+                </div>
+            </div>
+        )
     }
 
     return (
@@ -58,47 +91,43 @@ export default function ReservationModal({ reservation, onClose }) {
                 <div className="grid grid-cols-1 md:grid-cols-2">
                     {/* Car Details */}
                     <div className="bg-gray-50 p-8">
-                        <img
-                            src="https://images.unsplash.com/photo-1550355291-bbee04a92027?auto=format&fit=crop&q=80&w=2156"
-                            alt="2016 Toyota Camry"
-                            className="w-full h-auto rounded-lg mb-6"
-                        />
+                        <img src={car.imageUrl || "/placeholder.svg"} alt={car.name} className="w-full h-auto rounded-lg mb-6" />
 
-                        <h2 className="text-2xl font-bold">2016 Toyota Camry</h2>
-                        <p className="text-gray-600 mb-4">Sedan</p>
+                        <h2 className="text-2xl font-bold">{car.name}</h2>
+                        <p className="text-gray-600 mb-4">{car.type}</p>
 
                         <div className="flex justify-between items-center mb-4">
                             <div>
-                                <span className="text-2xl font-bold">₱ 4500</span>
+                                <span className="text-2xl font-bold">₱ {car.price}</span>
                                 <span className="text-gray-500 text-sm ml-1">per day</span>
                             </div>
                         </div>
 
                         <div className="grid grid-cols-3 gap-4 mb-6">
                             <div className="flex flex-col items-center p-3 bg-white rounded-lg">
-                                <span className="text-sm">4 Seats</span>
+                                <span className="text-sm">{car.seats} Seats</span>
                             </div>
                             <div className="flex flex-col items-center p-3 bg-white rounded-lg">
-                                <span className="text-sm">Automatic</span>
+                                <span className="text-sm">{car.transmission}</span>
                             </div>
                             <div className="flex flex-col items-center p-3 bg-white rounded-lg">
-                                <span className="text-sm">Gasoline</span>
+                                <span className="text-sm">{car.fuelType}</span>
                             </div>
                         </div>
 
                         <div>
                             <h3 className="font-medium mb-2">Plate Number</h3>
-                            <p className="text-gray-700">DIWATA009</p>
+                            <p className="text-gray-700">{car.plateNumber || "DIWATA009"}</p>
                         </div>
 
                         <div className="mt-4 grid grid-cols-2 gap-4">
                             <div>
-                                <h3 className="font-medium mb-2">Start Date & Time</h3>
-                                <p className="text-gray-700">01/24/2024 10:00 AM</p>
+                                <h3 className="font-medium mb-2">Start Date</h3>
+                                <p className="text-gray-700">{new Date(reservation.startDate).toLocaleDateString()}</p>
                             </div>
                             <div>
-                                <h3 className="font-medium mb-2">End Date & Time</h3>
-                                <p className="text-gray-700">01/24/2024 10:00 AM</p>
+                                <h3 className="font-medium mb-2">End Date</h3>
+                                <p className="text-gray-700">{new Date(reservation.endDate).toLocaleDateString()}</p>
                             </div>
                         </div>
                     </div>
@@ -198,11 +227,13 @@ export default function ReservationModal({ reservation, onClose }) {
                                     <h3 className="font-medium mb-2">Booking Summary</h3>
                                     <div className="flex justify-between mb-2">
                                         <span className="text-gray-600">Amount Due</span>
-                                        <span>₱ 4500 x 7 days</span>
+                                        <span>
+                                            ₱ {car.price} x {Math.round(reservation.totalPrice / car.price)} days
+                                        </span>
                                     </div>
                                     <div className="flex justify-between font-bold">
                                         <span>Total</span>
-                                        <span>₱ 31,500.00</span>
+                                        <span>₱ {reservation.totalPrice.toLocaleString()}</span>
                                     </div>
                                 </div>
 
@@ -231,4 +262,3 @@ export default function ReservationModal({ reservation, onClose }) {
         </div>
     )
 }
-

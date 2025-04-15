@@ -7,106 +7,11 @@ import ReservationModal from "./ReservationModal"
 import { useAuth } from "../context/AuthContext"
 import { useNavigate } from "react-router-dom"
 import ImageCarousel from "./ImageCarousel"
-
-// Updated demo data with multiple images for cars
-const cars = [
-    {
-        id: "1",
-        name: "2016 Toyota Camry",
-        type: "Sedan",
-        price: 4500,
-        seats: 4,
-        transmission: "Automatic",
-        fuelType: "Gasoline",
-        images: [
-            "https://images.unsplash.com/photo-1550355291-bbee04a92027?auto=format&fit=crop&q=80&w=2156",
-            "https://images.unsplash.com/photo-1550355291-bbee04a92027?auto=format&fit=crop&q=80&w=2156",
-            "https://images.unsplash.com/photo-1550355291-bbee04a92027?auto=format&fit=crop&q=80&w=2156",
-        ],
-        imageUrl: "https://images.unsplash.com/photo-1550355291-bbee04a92027?auto=format&fit=crop&q=80&w=2156",
-        available: true,
-        plateNumber: "DIWATA001",
-    },
-    {
-        id: "2",
-        name: "2018 Honda Civic",
-        type: "Sedan",
-        price: 4200,
-        seats: 5,
-        transmission: "Automatic",
-        fuelType: "Gasoline",
-        images: [
-            "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&q=80&w=2070",
-            "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&q=80&w=2070",
-        ],
-        imageUrl: "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&q=80&w=2070",
-        available: true,
-    },
-    {
-        id: "3",
-        name: "2020 Ford Explorer",
-        type: "SUV",
-        price: 6500,
-        seats: 7,
-        transmission: "Automatic",
-        fuelType: "Gasoline",
-        images: [
-            "https://images.unsplash.com/photo-1533106418989-88406c7cc8ca?auto=format&fit=crop&q=80&w=2070",
-            "https://images.unsplash.com/photo-1533106418989-88406c7cc8ca?auto=format&fit=crop&q=80&w=2070",
-            "https://images.unsplash.com/photo-1533106418989-88406c7cc8ca?auto=format&fit=crop&q=80&w=2070",
-        ],
-        imageUrl: "https://images.unsplash.com/photo-1533106418989-88406c7cc8ca?auto=format&fit=crop&q=80&w=2070",
-        available: true,
-    },
-    {
-        id: "4",
-        name: "2019 Mitsubishi Montero",
-        type: "SUV",
-        price: 5800,
-        seats: 7,
-        transmission: "Automatic",
-        fuelType: "Diesel",
-        images: [
-            "https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&q=80&w=2071",
-            "https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&q=80&w=2071",
-        ],
-        imageUrl: "https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&q=80&w=2071",
-        available: true,
-    },
-    {
-        id: "5",
-        name: "2021 Mazda 3",
-        type: "Hatchback",
-        price: 4800,
-        seats: 5,
-        transmission: "Manual",
-        fuelType: "Gasoline",
-        images: [
-            "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&q=80&w=2070",
-            "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&q=80&w=2070",
-        ],
-        imageUrl: "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&q=80&w=2070",
-        available: true,
-    },
-    {
-        id: "6",
-        name: "2017 Toyota Fortuner",
-        type: "SUV",
-        price: 5500,
-        seats: 7,
-        transmission: "Manual",
-        fuelType: "Diesel",
-        images: [
-            "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80&w=2070",
-            "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80&w=2070",
-        ],
-        imageUrl: "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80&w=2070",
-        available: true,
-    },
-]
+import { useCars } from "../context/CarContext"
 
 const BrowseCars = () => {
     const { isAuthenticated } = useAuth()
+    const { cars, loading } = useCars()
     const navigate = useNavigate()
 
     const [filters, setFilters] = useState({
@@ -120,11 +25,20 @@ const BrowseCars = () => {
     const [selectedCar, setSelectedCar] = useState(null)
     const [showDetailsModal, setShowDetailsModal] = useState(false)
     const [showReservationModal, setShowReservationModal] = useState(false)
-    const [filteredCars, setFilteredCars] = useState(cars)
+    const [filteredCars, setFilteredCars] = useState([])
     const [reservations, setReservations] = useState([])
+
+    // Initialize filtered cars when cars are loaded
+    useEffect(() => {
+        if (!loading) {
+            setFilteredCars(cars)
+        }
+    }, [cars, loading])
 
     // Apply filters whenever filters state changes
     useEffect(() => {
+        if (loading) return
+
         let result = [...cars]
 
         // Filter by car type
@@ -155,8 +69,11 @@ const BrowseCars = () => {
             result = result.filter((car) => car.price <= Number.parseInt(filters.priceRange.max))
         }
 
+        // Filter by availability
+        result = result.filter((car) => car.available)
+
         setFilteredCars(result)
-    }, [filters])
+    }, [filters, cars, loading])
 
     const handleOpenDetails = (car) => {
         setSelectedCar(car)
@@ -188,7 +105,8 @@ const BrowseCars = () => {
         setReservations((prev) => [...prev, reservation])
 
         // Show success message or redirect
-        alert(`Car reserved successfully! Your reservation ID is ${reservation.carId}-${Date.now().toString().slice(-4)}`)
+        alert(`Car reserved successfully! Your reservation ID is ${reservation.id}`)
+        navigate("/reserved-cars")
     }
 
     const handleFilterChange = (filterType, value) => {
@@ -206,6 +124,16 @@ const BrowseCars = () => {
             seats: "",
             priceRange: { min: "", max: "" },
         })
+    }
+
+    if (loading) {
+        return (
+            <div className="container mx-auto px-6 py-8">
+                <div className="flex justify-center items-center h-64">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black"></div>
+                </div>
+            </div>
+        )
     }
 
     return (

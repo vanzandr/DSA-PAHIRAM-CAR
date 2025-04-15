@@ -15,7 +15,8 @@ export default function PaymentModal({ booking, onClose, onPaymentComplete }) {
     // Set default values
     useEffect(() => {
         if (booking) {
-            setCashAmount(booking.price || 4500)
+            setCashAmount(booking.totalAmount || booking.totalPrice || 4500)
+            setPaymentMethod(booking.paymentMethod || "Cash")
         }
     }, [booking])
 
@@ -35,19 +36,24 @@ export default function PaymentModal({ booking, onClose, onPaymentComplete }) {
         e.preventDefault()
 
         // Process payment based on method
-        if (paymentMethod === "Cash") {
-            console.log("Processing cash payment:", cashAmount)
-        } else {
-            console.log("Processing card payment:", cardDetails)
+        const paymentDetails = {
+            method: paymentMethod,
+            amount: booking?.totalAmount || booking?.totalPrice || 31500,
+            status: "completed",
+            timestamp: new Date().toISOString(),
+        }
+
+        if (paymentMethod !== "Cash") {
+            paymentDetails.cardDetails = {
+                cardNumber: cardDetails.cardNumber.replace(/\d(?=\d{4})/g, "*"), // Mask card number
+                nameOnCard: cardDetails.nameOnCard,
+                expiryDate: cardDetails.expiryDate,
+            }
         }
 
         // Notify parent component
         if (onPaymentComplete) {
-            onPaymentComplete({
-                method: paymentMethod,
-                amount: booking?.totalAmount || 31500,
-                status: "completed",
-            })
+            onPaymentComplete(paymentDetails)
         }
 
         onClose()
@@ -63,15 +69,22 @@ export default function PaymentModal({ booking, onClose, onPaymentComplete }) {
                         {booking?.carName && (
                             <div className="mb-4">
                                 <h3 className="text-gray-600">Car Name</h3>
-                                <p className="font-medium">{booking.carName || "Toyota Camary"}</p>
+                                <p className="font-medium">{booking.carName}</p>
                             </div>
                         )}
 
                         <div className="border-t border-gray-200 pt-4">
                             <h3 className="text-gray-600 italic">Amount Due</h3>
                             <div className="flex justify-between items-center">
-                                <span className="text-gray-600">₱ 4500 x 7 days</span>
-                                <span className="font-bold">₱ 31,500.00</span>
+                                <span className="text-gray-600">
+                                    ₱ {booking?.price || 4500} x{" "}
+                                    {booking?.days ||
+                                        Math.round((booking?.totalAmount || booking?.totalPrice || 31500) / (booking?.price || 4500))}{" "}
+                                    days
+                                </span>
+                                <span className="font-bold">
+                                    ₱ {(booking?.totalAmount || booking?.totalPrice || 31500).toLocaleString()}
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -158,8 +171,15 @@ export default function PaymentModal({ booking, onClose, onPaymentComplete }) {
                                 </>
                             )}
 
-                            <div className="pt-4">
-                                <button type="submit" className="w-full bg-black text-white py-2 px-4 rounded-md hover:bg-gray-800">
+                            <div className="pt-4 flex space-x-4">
+                                <button
+                                    type="button"
+                                    onClick={onClose}
+                                    className="flex-1 py-2 px-4 border border-gray-300 rounded-md hover:bg-gray-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button type="submit" className="flex-1 bg-black text-white py-2 px-4 rounded-md hover:bg-gray-800">
                                     Pay
                                 </button>
                             </div>
@@ -170,4 +190,3 @@ export default function PaymentModal({ booking, onClose, onPaymentComplete }) {
         </div>
     )
 }
-

@@ -1,30 +1,32 @@
-import { useState } from 'react';
-import { Eye } from 'lucide-react';
-import { Link } from 'react-router-dom';
+"use client"
+
+import { useState } from "react"
+import { Eye } from "lucide-react"
+import { Link } from "react-router-dom"
 
 export default function Signup() {
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [formData, setFormData] = useState({
-    fullName: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
-  });
+    fullName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  })
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
+    const { name, value } = e.target
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
-    }));
-  };
+      [name]: value,
+    }))
+  }
 
   const handleSubmit = (e) => {
-    e.preventDefault();
+    e.preventDefault()
     // Here you would typically handle form submission
-    console.log('Form submitted:', formData);
-  };
+    console.log("Form submitted:", formData)
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -32,7 +34,7 @@ export default function Signup() {
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           <h2 className="text-2xl font-bold mb-2">Create an account</h2>
           <p className="text-gray-600 mb-6">Enter your information to create an account</p>
-          
+
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
@@ -112,16 +114,13 @@ export default function Signup() {
               </div>
             </div>
 
-            <button
-              type="submit"
-              className="w-full bg-black text-white py-2 px-4 rounded-md hover:bg-gray-800"
-            >
+            <button type="submit" className="w-full bg-black text-white py-2 px-4 rounded-md hover:bg-gray-800">
               Sign up
             </button>
           </form>
 
           <p className="mt-6 text-center text-sm text-gray-600">
-            Already have an account?{' '}
+            Already have an account?{" "}
             <Link to="/login" className="font-medium text-black hover:text-gray-800">
               Log in
             </Link>
@@ -129,5 +128,5 @@ export default function Signup() {
         </div>
       </div>
     </div>
-  );
+  )
 }

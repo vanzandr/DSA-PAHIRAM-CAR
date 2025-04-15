@@ -87,7 +87,9 @@ export default function CarDetails({ car, onClose }) {
                                     </div>
                                 </div>
 
-                                <button className="w-full py-3 bg-black text-white rounded-lg hover:bg-gray-800">Reserve</button>
+                                <button onClick={onClose} className="w-full py-3 bg-black text-white rounded-lg hover:bg-gray-800">
+                                    Close
+                                </button>
                             </div>
                         </div>
 

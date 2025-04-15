@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { X, Plus, ImageIcon } from "lucide-react"
 
-export default function EditCarModal({ car, onClose }) {
+export default function EditCarModal({ car, onClose, onSave }) {
     const [formData, setFormData] = useState({
         carName: "",
         carType: "",
@@ -14,6 +14,7 @@ export default function EditCarModal({ car, onClose }) {
         plateNumber: "",
         year: new Date().getFullYear(),
         description: "",
+        available: true,
     })
 
     const [carImages, setCarImages] = useState([])
@@ -33,6 +34,7 @@ export default function EditCarModal({ car, onClose }) {
                 description:
                     car.description ||
                     "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+                available: car.available !== undefined ? car.available : true,
             })
 
             // Initialize images from car data
@@ -94,6 +96,12 @@ export default function EditCarModal({ car, onClose }) {
             description: formData.description,
             images: previewImages,
             imageUrl: previewImages[0] || car.imageUrl, // Keep the first image as the main one
+            available: formData.available,
+        }
+
+        // Call parent handler if provided
+        if (onSave) {
+            onSave(updatedCar)
         }
 
         console.log("Car updated:", updatedCar)
@@ -273,6 +281,30 @@ export default function EditCarModal({ car, onClose }) {
                                             onChange={handleChange}
                                             className="w-full rounded-md border border-gray-300 px-3 py-2"
                                         />
+                                    </div>
+                                </div>
+
+                                <div className="mb-4">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Availability Status</label>
+                                    <div className="flex items-center">
+                                        <div className="relative inline-block w-10 mr-2 align-middle select-none">
+                                            <input
+                                                type="checkbox"
+                                                name="available"
+                                                id="available"
+                                                checked={formData.available}
+                                                onChange={(e) => setFormData({ ...formData, available: e.target.checked })}
+                                                className="sr-only"
+                                            />
+                                            <div className="block bg-gray-300 w-10 h-6 rounded-full"></div>
+                                            <div
+                                                className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${formData.available ? "transform translate-x-4" : ""
+                                                    }`}
+                                            ></div>
+                                        </div>
+                                        <label htmlFor="available" className="text-sm text-gray-700">
+                                            {formData.available ? "Available" : "Unavailable"}
+                                        </label>
                                     </div>
                                 </div>
 

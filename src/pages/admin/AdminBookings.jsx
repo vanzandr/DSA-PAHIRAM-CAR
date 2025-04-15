@@ -1,129 +1,92 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Search } from "lucide-react"
 import AdminSidebar from "./components/AdminSidebar"
 import BookingDetailsModal from "./components/BookingDetailsModal"
-
-// Updated demo data for bookings with more varied and accurate statuses
-const bookings = [
-    {
-        id: "B001",
-        customer: "Diwata Pares",
-        car: "2016 Toyota Camry",
-        startDate: "May 05, 2025",
-        endDate: "May 12, 2025",
-        total: "₱ 24,000.00",
-        status: "Ongoing",
-        paymentStatus: "Paid",
-        actionRequired: false,
-    },
-    {
-        id: "B002",
-        customer: "Diwata Pares",
-        car: "2016 Toyota Camry",
-        startDate: "May 04, 2025",
-        endDate: "May 12, 2025",
-        total: "₱ 24,000.00",
-        status: "Overdue",
-        paymentStatus: "Paid",
-        actionRequired: true,
-    },
-    {
-        id: "B003",
-        customer: "Diwata Pares",
-        car: "2016 Toyota Camry",
-        startDate: "May 03, 2025",
-        endDate: "May 12, 2025",
-        total: "₱ 24,000.00",
-        status: "Completed",
-        paymentStatus: "Paid",
-        actionRequired: false,
-    },
-    {
-        id: "B004",
-        customer: "Diwata Pares",
-        car: "2016 Toyota Camry",
-        startDate: "May 01, 2025",
-        endDate: "May 12, 2025",
-        total: "₱ 24,000.00",
-        status: "Completed",
-        paymentStatus: "Paid",
-        actionRequired: false,
-    },
-    {
-        id: "B005",
-        customer: "John Smith",
-        car: "2016 Toyota Camry",
-        startDate: "May 06, 2025",
-        endDate: "May 13, 2025",
-        total: "₱ 24,000.00",
-        status: "Ongoing",
-        paymentStatus: "Paid",
-        actionRequired: false,
-    },
-    {
-        id: "B006",
-        customer: "Maria Garcia",
-        car: "2016 Toyota Camry",
-        startDate: "May 07, 2025",
-        endDate: "May 14, 2025",
-        total: "₱ 24,000.00",
-        status: "Confirmed",
-        paymentStatus: "Pending",
-        actionRequired: true,
-    },
-    {
-        id: "B007",
-        customer: "Carlos Reyes",
-        car: "2018 Honda Civic",
-        startDate: "May 10, 2025",
-        endDate: "May 17, 2025",
-        total: "₱ 29,400.00",
-        status: "Confirmed",
-        paymentStatus: "Paid",
-        actionRequired: false,
-    },
-    {
-        id: "B008",
-        customer: "Sofia Cruz",
-        car: "2020 Ford Explorer",
-        startDate: "Apr 28, 2025",
-        endDate: "May 05, 2025",
-        total: "₱ 45,500.00",
-        status: "Cancelled",
-        paymentStatus: "Refunded",
-        actionRequired: false,
-    },
-]
+import { useBookings } from "../../context/BookingContext"
+import { useCars } from "../../context/CarContext"
 
 export default function AdminBookings() {
+    const { bookings, updateBooking, completeBooking, cancelBooking } = useBookings()
+    const { cars, getCarById } = useCars()
+
     const [filter, setFilter] = useState("all")
     const [searchTerm, setSearchTerm] = useState("")
     const [selectedBooking, setSelectedBooking] = useState(null)
     const [showModal, setShowModal] = useState(false)
+    const [filteredBookings, setFilteredBookings] = useState([])
+    const [loading, setLoading] = useState(true)
+
+    // Process bookings with car details
+    useEffect(() => {
+        if (bookings.length > 0 && cars.length > 0) {
+            const processedBookings = bookings.map((booking) => {
+                const car = getCarById(booking.carId)
+
+                // Check if the booking is overdue
+                const endDate = new Date(booking.endDate)
+                const today = new Date()
+                const isOverdue = booking.status === "Ongoing" && today > endDate
+
+                return {
+                    ...booking,
+                    car: car ? car.name : booking.carName || "Unknown Car",
+                    customer: booking.customerName || "Unknown Customer",
+                    status: isOverdue ? "Overdue" : booking.status,
+                    actionRequired: isOverdue || booking.paymentStatus === "Pending",
+                }
+            })
+
+            setFilteredBookings(processedBookings)
+            setLoading(false)
+        }
+    }, [bookings, cars])
 
     // Filter bookings based on selected filter and search term
-    const filteredBookings = bookings
-        .filter((booking) => {
-            if (filter === "all") return true
-            if (filter === "confirmed") return booking.status === "Confirmed"
-            if (filter === "ongoing") return booking.status === "Ongoing"
-            if (filter === "completed") return booking.status === "Completed"
-            if (filter === "overdue") return booking.status === "Overdue"
-            if (filter === "cancelled") return booking.status === "Cancelled"
-            if (filter === "action-required") return booking.actionRequired
-            if (filter === "payment-pending") return booking.paymentStatus === "Pending"
-            return true
+    useEffect(() => {
+        if (loading) return
+
+        let result = [...bookings].map((booking) => {
+            const car = getCarById(booking.carId)
+
+            // Check if the booking is overdue
+            const endDate = new Date(booking.endDate)
+            const today = new Date()
+            const isOverdue = booking.status === "Ongoing" && today > endDate
+
+            return {
+                ...booking,
+                car: car ? car.name : booking.carName || "Unknown Car",
+                customer: booking.customerName || "Unknown Customer",
+                status: isOverdue ? "Overdue" : booking.status,
+                actionRequired: isOverdue || booking.paymentStatus === "Pending",
+            }
         })
-        .filter((booking) => {
-            if (!searchTerm) return true
-            return (
-                booking.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                booking.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                booking.car.toLowerCase().includes(searchTerm.toLowerCase())
+
+        // Apply filter
+        if (filter !== "all") {
+            if (filter === "confirmed") result = result.filter((b) => b.status === "Confirmed")
+            if (filter === "ongoing") result = result.filter((b) => b.status === "Ongoing")
+            if (filter === "completed") result = result.filter((b) => b.status === "Completed")
+            if (filter === "overdue") result = result.filter((b) => b.status === "Overdue")
+            if (filter === "cancelled") result = result.filter((b) => b.status === "Cancelled")
+            if (filter === "action-required") result = result.filter((b) => b.actionRequired)
+            if (filter === "payment-pending") result = result.filter((b) => b.paymentStatus === "Pending")
+        }
+
+        // Apply search
+        if (searchTerm) {
+            result = result.filter(
+                (b) =>
+                    b.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    b.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    b.car.toLowerCase().includes(searchTerm.toLowerCase()),
             )
-        })
+        }
+
+        setFilteredBookings(result)
+    }, [filter, searchTerm, loading])
 
     const handleViewBooking = (booking) => {
         setSelectedBooking(booking)
@@ -133,6 +96,24 @@ export default function AdminBookings() {
     const handleCloseModal = () => {
         setShowModal(false)
         setSelectedBooking(null)
+    }
+
+    const handleCompleteBooking = (bookingId) => {
+        if (window.confirm("Are you sure you want to mark this booking as completed?")) {
+            completeBooking(bookingId)
+
+            // Update UI
+            setFilteredBookings((prev) => prev.map((b) => (b.id === bookingId ? { ...b, status: "Completed" } : b)))
+        }
+    }
+
+    const handleCancelBooking = (bookingId) => {
+        if (window.confirm("Are you sure you want to cancel this booking?")) {
+            cancelBooking(bookingId)
+
+            // Update UI
+            setFilteredBookings((prev) => prev.map((b) => (b.id === bookingId ? { ...b, status: "Cancelled" } : b)))
+        }
     }
 
     // Function to determine the status badge style
@@ -165,6 +146,19 @@ export default function AdminBookings() {
             default:
                 return "bg-gray-100 text-gray-800"
         }
+    }
+
+    if (loading) {
+        return (
+            <div className="flex min-h-screen bg-gray-50">
+                <AdminSidebar active="bookings" />
+                <div className="flex-1 p-8">
+                    <div className="flex justify-center items-center h-64">
+                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black"></div>
+                    </div>
+                </div>
+            </div>
+        )
     }
 
     return (
@@ -247,73 +241,106 @@ export default function AdminBookings() {
 
                 {/* Bookings Table */}
                 <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Booking ID
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Customer
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Car</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Start Date
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    End Date
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Total
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Status
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Payment
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Actions
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {filteredBookings.map((booking) => (
-                                <tr key={booking.id}>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{booking.id}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{booking.customer}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{booking.car}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{booking.startDate}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{booking.endDate}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{booking.total}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span
-                                            className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(booking.status)}`}
-                                        >
-                                            {booking.status}
-                                        </span>
-                                        {booking.actionRequired && (
-                                            <span className="ml-2 px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                                                !
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span
-                                            className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getPaymentStatusBadgeClass(booking.paymentStatus)}`}
-                                        >
-                                            {booking.paymentStatus}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        <button onClick={() => handleViewBooking(booking)} className="text-black hover:underline">
-                                            View
-                                        </button>
-                                    </td>
+                    {filteredBookings.length === 0 ? (
+                        <div className="p-8 text-center">
+                            <h3 className="text-lg font-semibold mb-2">No bookings found</h3>
+                            <p className="text-gray-600">Try adjusting your filters to see more results.</p>
+                        </div>
+                    ) : (
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Booking ID
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Customer
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Car
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Start Date
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        End Date
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Total
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Status
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Payment
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Actions
+                                    </th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {filteredBookings.map((booking) => (
+                                    <tr key={booking.id}>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{booking.id}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{booking.customer}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{booking.car}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            {new Date(booking.startDate).toLocaleDateString()}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            {new Date(booking.endDate).toLocaleDateString()}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            ₱ {booking.totalPrice.toLocaleString()}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span
+                                                className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(booking.status)}`}
+                                            >
+                                                {booking.status}
+                                            </span>
+                                            {booking.actionRequired && (
+                                                <span className="ml-2 px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                                    !
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span
+                                                className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getPaymentStatusBadgeClass(booking.paymentStatus)}`}
+                                            >
+                                                {booking.paymentStatus}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            <div className="flex gap-2">
+                                                <button onClick={() => handleViewBooking(booking)} className="text-black hover:underline">
+                                                    View
+                                                </button>
+                                                {booking.status === "Ongoing" && (
+                                                    <button
+                                                        onClick={() => handleCompleteBooking(booking.id)}
+                                                        className="text-green-600 hover:underline"
+                                                    >
+                                                        Complete
+                                                    </button>
+                                                )}
+                                                {(booking.status === "Ongoing" || booking.status === "Confirmed") && (
+                                                    <button
+                                                        onClick={() => handleCancelBooking(booking.id)}
+                                                        className="text-red-600 hover:underline"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
                 </div>
             </div>
 

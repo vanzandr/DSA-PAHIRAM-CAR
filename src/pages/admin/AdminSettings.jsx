@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { useAuth } from "../../context/AuthContext"
 import AdminSidebar from "./components/AdminSidebar"
+import { Camera } from "lucide-react"
 
 export default function AdminSettings() {
     const { currentUser } = useAuth()
@@ -14,6 +15,8 @@ export default function AdminSettings() {
         phone: "+63 912 345 6789",
         taxId: "123-456-789-000",
     })
+    const [avatar, setAvatar] = useState(currentUser.avatar || "/placeholder.svg")
+    const fileInputRef = useRef(null)
 
     const handleChange = (e) => {
         const { name, value } = e.target
@@ -27,6 +30,21 @@ export default function AdminSettings() {
         e.preventDefault()
         // Here you would typically update the admin's information
         console.log("Updated admin info:", formData)
+    }
+
+    const handleAvatarClick = () => {
+        fileInputRef.current.click()
+    }
+
+    const handleFileChange = (e) => {
+        const file = e.target.files[0]
+        if (file) {
+            const reader = new FileReader()
+            reader.onload = (e) => {
+                setAvatar(e.target.result)
+            }
+            reader.readAsDataURL(file)
+        }
     }
 
     return (
@@ -45,6 +63,28 @@ export default function AdminSettings() {
                     </div>
 
                     <div className="p-6">
+                        <div className="flex justify-center mb-8">
+                            <div className="relative">
+                                <div
+                                    className="w-32 h-32 rounded-full overflow-hidden border-4 border-gray-200 cursor-pointer"
+                                    onClick={handleAvatarClick}
+                                >
+                                    <img
+                                        src={avatar || "/placeholder.svg"}
+                                        alt={formData.fullName}
+                                        className="w-full h-full object-cover"
+                                    />
+                                </div>
+                                <div
+                                    className="absolute bottom-0 right-0 bg-black text-white p-2 rounded-full cursor-pointer"
+                                    onClick={handleAvatarClick}
+                                >
+                                    <Camera className="h-4 w-4" />
+                                </div>
+                                <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
+                            </div>
+                        </div>
+
                         <form onSubmit={handleSubmit}>
                             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                                 <div>
@@ -156,4 +196,3 @@ export default function AdminSettings() {
         </div>
     )
 }
-

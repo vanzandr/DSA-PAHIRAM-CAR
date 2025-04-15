@@ -1,6 +1,6 @@
 "use client"
 
-import { Car, User, LogOut, ChevronDown } from "lucide-react"
+import { Car, LogOut, ChevronDown, LayoutDashboard, User } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
 import DropdownMenu from "./DropdownMenu"
@@ -37,9 +37,14 @@ export default function Navbar() {
 
             {isAuthenticated && (
               <>
-                {isAdmin && (
+                {isAdmin ? (
                   <Link to="/admin" className="text-gray-700 hover:text-black">
                     Admin Dashboard
+                  </Link>
+                ) : (
+                  <Link to="/user/dashboard" className="text-gray-700 hover:text-black flex items-center">
+                    <LayoutDashboard className="h-4 w-4 mr-1" />
+                    Dashboard
                   </Link>
                 )}
               </>
@@ -63,15 +68,6 @@ export default function Navbar() {
               >
                 {isAdmin ? (
                   <>
-                    <Link to="/admin" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                      Dashboard
-                    </Link>
-                    <Link to="/admin/cars" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                      Car Management
-                    </Link>
-                    <Link to="/admin/bookings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                      Bookings
-                    </Link>
                     <Link to="/admin/settings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                       Settings
                     </Link>
@@ -84,9 +80,6 @@ export default function Navbar() {
                     >
                       <User className="h-4 w-4 mr-2" />
                       Profile
-                    </Link>
-                    <Link to="/settings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                      Settings
                     </Link>
                   </>
                 )}
