@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from "react"
 import { Search, Plus } from "lucide-react"
-import AdminSidebar from "./components/AdminSidebar"
+import AdminSidebar from "./components/AdminSidebar.jsx"
 import AddCarModal from "./components/AddCarModal"
 import EditCarModal from "./components/EditCarModal"
 import ImageCarousel from "../../components/ImageCarousel"
 import { useCars } from "../../context/CarContext"
+import axios from "axios";
+
 
 export default function CarManagement() {
     const { cars, addCar, updateCar, deleteCar, loading } = useCars()
@@ -79,9 +81,13 @@ export default function CarManagement() {
         setSelectedCar(null)
     }
 
-    const handleAddCarSubmit = (newCar) => {
-        addCar(newCar)
-        setShowAddModal(false)
+    const handleAddCarSubmit = async (newCar) => {
+        try {
+            await addCar(newCar);
+            setShowAddModal(false);
+        } catch (error) {
+            console.error("Failed to add car", error);
+        }
     }
 
     const handleEditCarSubmit = (updatedCar) => {

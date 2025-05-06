@@ -1,21 +1,27 @@
 "use client"
 
+
 import { useState, useEffect } from "react"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, AlertCircle, CheckCircle } from "lucide-react"
 import { Link } from "react-router-dom"
 import UserCarDetailsModal from "../../components/UserCarDetailsModal"
 import { useBookings } from "../../context/BookingContext"
 import { useCars } from "../../context/CarContext"
 import { useAuth } from "../../context/AuthContext"
+import { useNotifications } from "../../context/NotificationContext"
 
 export default function RentedCars() {
     const { currentUser } = useAuth()
     const { bookings, getUserBookings, completeBooking } = useBookings()
     const { cars, getCarById } = useCars()
+    const { addNotification } = useNotifications()
+
     const [userBookings, setUserBookings] = useState([])
     const [selectedCar, setSelectedCar] = useState(null)
     const [showDetailsModal, setShowDetailsModal] = useState(false)
     const [loading, setLoading] = useState(true)
+    const [returningId, setReturningId] = useState(null)
+    const [statusMessage, setStatusMessage] = useState({ type: "", message: "" })
 
     useEffect(() => {
         if (currentUser) {
@@ -60,12 +66,64 @@ export default function RentedCars() {
         setSelectedCar(null)
     }
 
-    const handleReturnCar = (bookingId) => {
+    const handleReturnCar = async (bookingId) => {
         if (window.confirm("Are you sure you want to return this car?")) {
-            completeBooking(bookingId)
+            setReturningId(bookingId)
 
-            // Update the UI
-            setUserBookings((prev) => prev.filter((item) => item.id !== bookingId))
+            try {
+                // Find the booking to get car details before completing
+                const booking = userBookings.find((b) => b.id === bookingId)
+                const car = booking?.car
+
+                // Complete the booking (mark as returned)
+                const success = completeBooking(bookingId)
+
+                if (success) {
+                    // Update the UI
+                    setUserBookings((prev) => prev.filter((item) => item.id !== bookingId))
+
+                    // Add return notification if notification context is available
+                    if (addNotification) {
+                        addNotification({
+                            type: "return",
+                            title: "Car Returned",
+                            message: `You have successfully returned ${car?.name}`,
+                            userId: currentUser.id,
+                            data: {
+                                bookingId,
+                                carId: car?.id,
+                                carName: car?.name,
+                                timestamp: new Date().toISOString(),
+                            },
+                        })
+                    }
+
+                    // Show success message
+                    setStatusMessage({
+                        type: "success",
+                        message: "Car returned successfully",
+                    })
+                } else {
+                    // Show error message
+                    setStatusMessage({
+                        type: "error",
+                        message: "Failed to return car",
+                    })
+                }
+
+                // Hide status message after 3 seconds
+                setTimeout(() => {
+                    setStatusMessage({ type: "", message: "" })
+                }, 3000)
+            } catch (error) {
+                console.error("Error returning car:", error)
+                setStatusMessage({
+                    type: "error",
+                    message: "An error occurred while returning the car",
+                })
+            } finally {
+                setReturningId(null)
+            }
         }
     }
 
@@ -96,6 +154,23 @@ export default function RentedCars() {
                     </div>
                 </div>
 
+                {statusMessage.message && (
+                    <div
+                        className={`mb-6 p-4 ${
+                            statusMessage.type === "success"
+                                ? "bg-green-50 border border-green-200 text-green-700"
+                                : "bg-red-50 border border-red-200 text-red-700"
+                        } rounded-md flex items-center`}
+                    >
+                        {statusMessage.type === "success" ? (
+                            <CheckCircle className="h-5 w-5 mr-2" />
+                        ) : (
+                            <AlertCircle className="h-5 w-5 mr-2" />
+                        )}
+                        {statusMessage.message}
+                    </div>
+                )}
+
                 {userBookings.length === 0 ? (
                     <div className="bg-white rounded-lg p-8 text-center">
                         <h3 className="text-lg font-semibold mb-2">No active rentals found</h3>
@@ -115,13 +190,14 @@ export default function RentedCars() {
                                         className="w-full h-48 object-cover"
                                     />
                                     <span
-                                        className={`absolute top-4 right-4 px-3 py-1 rounded-full text-sm ${booking.car.isDue ? "bg-red-600 text-white" : "bg-green-600 text-white"
-                                            }`}
+                                        className={`absolute top-4 right-4 px-3 py-1 rounded-full text-sm ${
+                                            booking.car.isDue ? "bg-red-600 text-white" : "bg-green-600 text-white"
+                                        }`}
                                     >
-                                        {booking.car.isDue
-                                            ? "Due already"
-                                            : `Return before ${new Date(booking.car.returnDate).toLocaleDateString()}`}
-                                    </span>
+                    {booking.car.isDue
+                        ? "Due already"
+                        : `Return before ${new Date(booking.car.returnDate).toLocaleDateString()}`}
+                  </span>
                                 </div>
                                 <div className="p-4">
                                     <h3 className="text-lg font-semibold">{booking.car.name}</h3>
@@ -160,9 +236,13 @@ export default function RentedCars() {
                                                 Details
                                             </button>
                                             <button
-                                                className="px-4 py-2 bg-black text-white rounded-lg text-sm hover:bg-gray-800"
+                                                className="px-4 py-2 bg-black text-white rounded-lg text-sm hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed flex justify-center items-center"
                                                 onClick={() => handleReturnCar(booking.id)}
+                                                disabled={returningId === booking.id}
                                             >
+                                                {returningId === booking.id ? (
+                                                    <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>
+                                                ) : null}
                                                 Return
                                             </button>
                                         </div>

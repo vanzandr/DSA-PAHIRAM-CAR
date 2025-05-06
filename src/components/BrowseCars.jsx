@@ -8,6 +8,7 @@ import { useAuth } from "../context/AuthContext"
 import { useNavigate } from "react-router-dom"
 import ImageCarousel from "./ImageCarousel"
 import { useCars } from "../context/CarContext"
+import apiClient from "../services/apiClient.js";
 
 const BrowseCars = () => {
     const { isAuthenticated } = useAuth()
@@ -33,6 +34,14 @@ const BrowseCars = () => {
         if (!loading) {
             setFilteredCars(cars)
         }
+
+        async function fetchCars() {
+            const carsFetched = await apiClient.get("/api/admin/cars")
+            console.log(carsFetched)
+        }
+
+       fetchCars()
+
     }, [cars, loading])
 
     // Apply filters whenever filters state changes

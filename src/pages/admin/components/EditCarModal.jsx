@@ -3,9 +3,12 @@
 import { useState, useEffect } from "react"
 import { X, Plus, ImageIcon } from "lucide-react"
 
+
 export default function EditCarModal({ car, onClose, onSave }) {
     const [formData, setFormData] = useState({
         carName: "",
+        chassisNumber: "",
+        engineNumber: "", // Added engine number
         carType: "",
         fuelType: "",
         transmission: "",
@@ -14,7 +17,7 @@ export default function EditCarModal({ car, onClose, onSave }) {
         plateNumber: "",
         year: new Date().getFullYear(),
         description: "",
-        available: true,
+        status: "Available", // Changed from available boolean to status string
     })
 
     const [carImages, setCarImages] = useState([])
@@ -24,6 +27,8 @@ export default function EditCarModal({ car, onClose, onSave }) {
         if (car) {
             setFormData({
                 carName: car.name || "",
+                chassisNumber: car.chassisNumber || "",
+                engineNumber: car.engineNumber || "", // Initialize engine number
                 carType: car.type || "",
                 fuelType: car.fuelType || "",
                 transmission: car.transmission || "",
@@ -34,7 +39,7 @@ export default function EditCarModal({ car, onClose, onSave }) {
                 description:
                     car.description ||
                     "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
-                available: car.available !== undefined ? car.available : true,
+                status: car.status || (car.available ? "Available" : "Archived"), // Convert from boolean to string if needed
             })
 
             // Initialize images from car data
@@ -86,6 +91,8 @@ export default function EditCarModal({ car, onClose, onSave }) {
         const updatedCar = {
             ...car,
             name: formData.carName,
+            chassisNumber: formData.chassisNumber,
+            engineNumber: formData.engineNumber, // Add engine number to updated car
             type: formData.carType,
             fuelType: formData.fuelType,
             transmission: formData.transmission,
@@ -96,7 +103,8 @@ export default function EditCarModal({ car, onClose, onSave }) {
             description: formData.description,
             images: previewImages,
             imageUrl: previewImages[0] || car.imageUrl, // Keep the first image as the main one
-            available: formData.available,
+            status: formData.status, // Use status string instead of available boolean
+            available: formData.status === "Available", // For backward compatibility
         }
 
         // Call parent handler if provided
@@ -179,6 +187,29 @@ export default function EditCarModal({ car, onClose, onSave }) {
                                         type="text"
                                         name="carName"
                                         value={formData.carName}
+                                        onChange={handleChange}
+                                        className="w-full rounded-md border border-gray-300 px-3 py-2"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Chassis Number</label>
+                                    <input
+                                        type="text"
+                                        name="chassisNumber"
+                                        value={formData.chassisNumber}
+                                        onChange={handleChange}
+                                        className="w-full rounded-md border border-gray-300 px-3 py-2"
+                                    />
+                                </div>
+
+                                {/* Engine Number Field */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Engine Number</label>
+                                    <input
+                                        type="text"
+                                        name="engineNumber"
+                                        value={formData.engineNumber}
                                         onChange={handleChange}
                                         className="w-full rounded-md border border-gray-300 px-3 py-2"
                                     />
@@ -284,28 +315,18 @@ export default function EditCarModal({ car, onClose, onSave }) {
                                     </div>
                                 </div>
 
-                                <div className="mb-4">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Availability Status</label>
-                                    <div className="flex items-center">
-                                        <div className="relative inline-block w-10 mr-2 align-middle select-none">
-                                            <input
-                                                type="checkbox"
-                                                name="available"
-                                                id="available"
-                                                checked={formData.available}
-                                                onChange={(e) => setFormData({ ...formData, available: e.target.checked })}
-                                                className="sr-only"
-                                            />
-                                            <div className="block bg-gray-300 w-10 h-6 rounded-full"></div>
-                                            <div
-                                                className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${formData.available ? "transform translate-x-4" : ""
-                                                    }`}
-                                            ></div>
-                                        </div>
-                                        <label htmlFor="available" className="text-sm text-gray-700">
-                                            {formData.available ? "Available" : "Unavailable"}
-                                        </label>
-                                    </div>
+                                {/* Status Dropdown */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                    <select
+                                        name="status"
+                                        value={formData.status}
+                                        onChange={handleChange}
+                                        className="w-full rounded-md border border-gray-300 px-3 py-2"
+                                    >
+                                        <option value="Available">Available</option>
+                                        <option value="Archived">Archived</option>
+                                    </select>
                                 </div>
 
                                 <div>

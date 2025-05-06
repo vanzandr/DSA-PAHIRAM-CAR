@@ -1,22 +1,77 @@
 "use client"
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useAuth } from "../../context/AuthContext"
 import { Car, Calendar, Camera, Clock } from "lucide-react"
 import { Link } from "react-router-dom"
 
 export default function UserProfile() {
-    const { currentUser } = useAuth()
-    const [avatar, setAvatar] = useState(currentUser.avatar || "/placeholder.svg")
+    const auth = useAuth()
+    const currentUser = auth?.currentUser
+
+    console.log(" currentUser at render:", currentUser)
+
+
+    const [loadingData, setLoadingData] = useState(true)
+    const [avatar, setAvatar] = useState("/placeholder.svg")
     const [formData, setFormData] = useState({
-        fullName: currentUser.fullName,
-        email: currentUser.email,
-        phone: currentUser.phone || "",
+        username: "",
+        firstName: "",
+        middleName: "",
+        lastName: "",
+        email: "",
+        mobilePhone: "",
+        birthdate: "",
+        maritalStatus: "Single",
+        nationality: "",
     })
+
     const fileInputRef = useRef(null)
 
-    const handleAvatarClick = () => {
-        fileInputRef.current.click()
-    }
+    useEffect(() => {
+        if (!currentUser?.id) {
+            console.warn(" No currentUser.id yet — skipping fetch")
+            return
+        }
+
+        console.log("📡 Fetching customer data for ID:", currentUser.id)
+
+        const fetchCustomerDetails = async () => {
+            try {
+                const response = await fetch(`http://localhost:8080/api/customer/${currentUser.id}`, {
+                    credentials: "include",
+                })
+
+                console.log("📥 Fetch response:", response)
+
+                if (!response.ok) throw new Error("Failed to fetch customer details")
+
+                const data = await response.json()
+                console.log("✅ Customer data:", data)
+
+                setFormData({
+                    username: data.username || "",
+                    firstName: data.firstName || "",
+                    middleName: data.middleName || "",
+                    lastName: data.lastName || "",
+                    email: data.email || "",
+                    mobilePhone: data.mobilePhone || "",
+                    birthdate: data.birthdate || "",
+                    maritalStatus: data.maritalStatus || "Single",
+                    nationality: data.nationality || "",
+                })
+                setAvatar(data.avatar || "/placeholder.svg")
+            } catch (error) {
+                console.error(" Error fetching customer details:", error)
+            } finally {
+                console.log("✅ Finished fetch. Setting loadingData = false")
+                setLoadingData(false)
+            }
+        }
+
+        fetchCustomerDetails()
+    }, [currentUser?.id])
+
+    const handleAvatarClick = () => fileInputRef.current?.click()
 
     const handleFileChange = (e) => {
         const file = e.target.files[0]
@@ -37,11 +92,34 @@ export default function UserProfile() {
         }))
     }
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault()
-        // Here you would typically update the user's information
-        console.log("Updated user info:", formData)
+        try {
+            const response = await fetch(`http://localhost:8080/api/customer/${currentUser.id}/edit`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                credentials: "include",
+                body: JSON.stringify(formData),
+            })
+
+            if (!response.ok) {
+                const errorData = await response.json()
+                console.error("Update failed:", errorData.message || "Unknown error")
+                return
+            }
+
+            const updatedUser = await response.json()
+            console.log("🎉 User updated successfully:", updatedUser)
+            alert("Profile updated!")
+        } catch (error) {
+            console.error("🚨 Error updating profile:", error)
+        }
     }
+
+    if (!currentUser) return <div className="p-4 text-center">Loading user...</div>
+    if (loadingData) return <div className="p-4 text-center">Loading profile...</div>
 
     return (
         <div className="min-h-screen bg-gray-50 py-12">
@@ -61,7 +139,8 @@ export default function UserProfile() {
                                 >
                                     <img
                                         src={avatar || "/placeholder.svg"}
-                                        alt={formData.fullName}
+                                        alt={formData.firstName}
+                                        onError={(e) => (e.target.src = "/placeholder.svg")}
                                         className="w-full h-full object-cover"
                                     />
                                 </div>
@@ -77,46 +156,48 @@ export default function UserProfile() {
 
                         <form onSubmit={handleSubmit}>
                             <div className="space-y-6">
-                                <div>
-                                    <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
-                                        Full Name
-                                    </label>
-                                    <input
-                                        type="text"
-                                        id="fullName"
-                                        name="fullName"
-                                        value={formData.fullName}
-                                        onChange={handleChange}
-                                        className="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-black focus:outline-none"
-                                    />
-                                </div>
+                                {[
+                                    ["username", "Username"],
+                                    ["firstName", "First Name"],
+                                    ["middleName", "Middle Name (Optional)"],
+                                    ["lastName", "Last Name"],
+                                    ["birthdate", "Birthdate", "date"],
+                                    ["nationality", "Nationality"],
+                                    ["mobilePhone", "Mobile Phone"],
+                                    ["email", "Email", "email"],
+                                ].map(([field, label, type = "text"]) => (
+                                    <div key={field}>
+                                        <label htmlFor={field} className="block text-sm font-medium text-gray-700 mb-1">
+                                            {label}
+                                        </label>
+                                        <input
+                                            type={type}
+                                            id={field}
+                                            name={field}
+                                            value={formData[field]}
+                                            onChange={handleChange}
+                                            className="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-black focus:outline-none"
+                                        />
+                                    </div>
+                                ))}
 
                                 <div>
-                                    <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
-                                        Mobile Number
+                                    <label htmlFor="maritalStatus" className="block text-sm font-medium text-gray-700 mb-1">
+                                        Marital Status
                                     </label>
-                                    <input
-                                        type="text"
-                                        id="phone"
-                                        name="phone"
-                                        value={formData.phone}
+                                    <select
+                                        id="maritalStatus"
+                                        name="maritalStatus"
+                                        value={formData.maritalStatus}
                                         onChange={handleChange}
                                         className="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-black focus:outline-none"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                                        Email
-                                    </label>
-                                    <input
-                                        type="email"
-                                        id="email"
-                                        name="email"
-                                        value={formData.email}
-                                        onChange={handleChange}
-                                        className="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-black focus:outline-none"
-                                    />
+                                    >
+                                        {["Single", "Married", "Divorced", "Widowed", "Separated", "Other"].map((status) => (
+                                            <option key={status} value={status}>
+                                                {status}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
 
                                 <div className="pt-4">
@@ -126,6 +207,61 @@ export default function UserProfile() {
                                 </div>
                             </div>
                         </form>
+
+                        <div className="mt-8 pt-6 border-t border-gray-200">
+                            <h2 className="text-lg font-medium mb-4">Change Password</h2>
+                            <form
+                                onSubmit={(e) => {
+                                    e.preventDefault()
+                                    // Add password change logic here
+                                    alert("Password changed successfully!")
+                                }}
+                            >
+                                <div className="space-y-4">
+                                    <div>
+                                        <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                                            Current Password
+                                        </label>
+                                        <input
+                                            type="password"
+                                            id="currentPassword"
+                                            name="currentPassword"
+                                            className="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-black focus:outline-none"
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                                            New Password
+                                        </label>
+                                        <input
+                                            type="password"
+                                            id="newPassword"
+                                            name="newPassword"
+                                            className="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-black focus:outline-none"
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                                            Confirm New Password
+                                        </label>
+                                        <input
+                                            type="password"
+                                            id="confirmPassword"
+                                            name="confirmPassword"
+                                            className="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-black focus:outline-none"
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <button type="submit" className="bg-black text-white py-2 px-4 rounded-md hover:bg-gray-800">
+                                            Update Password
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
 
                         <div className="mt-8 pt-6 border-t border-gray-200">
                             <h2 className="text-lg font-medium mb-4">Quick Links</h2>

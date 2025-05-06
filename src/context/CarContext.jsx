@@ -1,6 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect } from "react"
+import apiClient from "../services/apiClient.js";
 
 // Create the car context
 const CarContext = createContext(null)
@@ -10,6 +11,7 @@ const initialCars = [
     {
         id: "1",
         name: "2016 Toyota Camry",
+        chassisNumber: "JT2BF22K6W0123456",
         type: "Sedan",
         price: 4500,
         seats: 4,
@@ -29,6 +31,7 @@ const initialCars = [
     {
         id: "2",
         name: "2018 Honda Civic",
+        chassisNumber: "2HGFC2F56JH543210",
         type: "Sedan",
         price: 4200,
         seats: 5,
@@ -47,6 +50,7 @@ const initialCars = [
     {
         id: "3",
         name: "2020 Ford Explorer",
+        chassisNumber: "1FM5K8GC8LGA12345",
         type: "SUV",
         price: 6500,
         seats: 7,
@@ -66,6 +70,7 @@ const initialCars = [
     {
         id: "4",
         name: "2019 Mitsubishi Montero",
+        chassisNumber: "JMYLYV97XKJ123456",
         type: "SUV",
         price: 5800,
         seats: 7,
@@ -84,6 +89,7 @@ const initialCars = [
     {
         id: "5",
         name: "2021 Mazda 3",
+        chassisNumber: "JM1BP0L00M1123456",
         type: "Hatchback",
         price: 4800,
         seats: 5,
@@ -102,6 +108,7 @@ const initialCars = [
     {
         id: "6",
         name: "2017 Toyota Fortuner",
+        chassisNumber: "MHFJW8EM7H0123456",
         type: "SUV",
         price: 5500,
         seats: 7,
@@ -117,50 +124,85 @@ const initialCars = [
         year: 2017,
         description: "A versatile SUV with excellent durability and performance on various terrains.",
     },
+
+
+
+    // Add other cars as needed
 ]
 
 export const CarProvider = ({ children }) => {
-    // Check if car data exists in localStorage
     const storedCars = localStorage.getItem("pahiramcar_cars")
     const [cars, setCars] = useState(storedCars ? JSON.parse(storedCars) : initialCars)
     const [loading, setLoading] = useState(true)
 
-    // Update localStorage when cars change
     useEffect(() => {
         localStorage.setItem("pahiramcar_cars", JSON.stringify(cars))
         setLoading(false)
     }, [cars])
 
-    // Add a new car
     const addCar = (car) => {
         const newCar = {
             ...car,
             id: `${cars.length + 1}`,
             available: true,
         }
-        setCars((prev) => [...prev, newCar])
+        setCars(prev => [...prev, newCar])
         return newCar
     }
 
-    // Update a car
     const updateCar = (updatedCar) => {
-        setCars((prev) => prev.map((car) => (car.id === updatedCar.id ? updatedCar : car)))
+        setCars(prev =>
+            prev.map(car => car.id === updatedCar.id ? updatedCar : car)
+        )
         return updatedCar
     }
 
-    // Delete a car
     const deleteCar = (carId) => {
-        setCars((prev) => prev.filter((car) => car.id !== carId))
+        setCars(prev => prev.filter(car => car.id !== carId))
     }
 
-    // Get a car by ID
     const getCarById = (carId) => {
-        return cars.find((car) => car.id === carId)
+        return cars.find(car => car.id === carId)
     }
 
-    // Update car availability
-    const updateCarAvailability = (carId, isAvailable) => {
-        setCars((prev) => prev.map((car) => (car.id === carId ? { ...car, available: isAvailable } : car)))
+    // ✅ Fully backend-compatible update
+    const updateCarAvailability = async (carId, availabilityStatus) => {
+        const carToUpdate = getCarById(carId)
+        if (!carToUpdate) return
+
+        const updatedCar = {
+            ...carToUpdate,
+            available: availabilityStatus,
+        }
+
+        try {
+            // Update state
+            setCars(prev =>
+                prev.map(car =>
+                    car.id === carId ? updatedCar : car
+                )
+            )
+
+            // Send full expected car object to backend
+            await apiClient.put(`/api/admin/cars/${carId}/edit`, {
+                car_type: updatedCar.type,
+                chassis_number: updatedCar.chassisNumber,
+                description: updatedCar.description,
+                engine_number: updatedCar.engineNumber || "N/A",
+                fuel_type: updatedCar.fuelType,
+                is_archived: false,
+                mileage: updatedCar.mileage || 0,
+                name: updatedCar.name,
+                plate_number: updatedCar.plateNumber,
+                price_per_day: updatedCar.price,
+                seats: updatedCar.seats,
+                status: availabilityStatus ? "Available" : "Booked",
+                transmission_type: updatedCar.transmission,
+                year: updatedCar.year,
+            })
+        } catch (error) {
+            console.error("Failed to update car availability:", error)
+        }
     }
 
     return (
@@ -180,7 +222,6 @@ export const CarProvider = ({ children }) => {
     )
 }
 
-// Custom hook to use the car context
 export const useCars = () => {
     const context = useContext(CarContext)
     if (!context) {

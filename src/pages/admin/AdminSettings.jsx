@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react"
 import { useAuth } from "../../context/AuthContext"
-import AdminSidebar from "./components/AdminSidebar"
+import AdminSidebar from "./components/AdminSidebar.jsx"
 import { Camera } from "lucide-react"
 
 export default function AdminSettings() {

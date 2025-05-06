@@ -51,6 +51,9 @@ export default function BookingDetailsModal({ booking, onClose }) {
         }
     }
 
+    // Get car details from booking
+    const car = booking?.carDetails || {}
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto">
@@ -85,9 +88,15 @@ export default function BookingDetailsModal({ booking, onClose }) {
                             </div>
                         </div>
 
-                        <div>
-                            <h3 className="font-medium mb-2">Plate Number</h3>
-                            <p className="text-gray-700">DIWATA009</p>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <h3 className="font-medium mb-2">Plate Number</h3>
+                                <p className="text-gray-700">DIWATA009</p>
+                            </div>
+                            <div>
+                                <h3 className="font-medium mb-2">Chassis Number</h3>
+                                <p className="text-gray-700">{car?.chassisNumber || "N/A"}</p>
+                            </div>
                         </div>
 
                         <div className="mt-4 grid grid-cols-2 gap-4">
@@ -161,12 +170,12 @@ export default function BookingDetailsModal({ booking, onClose }) {
                                 <span
                                     className={`px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full ${getStatusBadgeClass(booking?.status)}`}
                                 >
-                                    {booking?.status || "Ongoing"}
-                                </span>
+                  {booking?.status || "Ongoing"}
+                </span>
                                 {booking?.actionRequired && (
                                     <span className="ml-2 px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                                        Action Required
-                                    </span>
+                    Action Required
+                  </span>
                                 )}
                             </div>
 
@@ -176,8 +185,8 @@ export default function BookingDetailsModal({ booking, onClose }) {
                                     <span
                                         className={`px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full ${getPaymentStatusBadgeClass(booking.paymentStatus)}`}
                                     >
-                                        {booking.paymentStatus}
-                                    </span>
+                    {booking.paymentStatus}
+                  </span>
                                 </div>
                             )}
 

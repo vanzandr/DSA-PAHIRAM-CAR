@@ -2,19 +2,24 @@
 
 import { useState } from "react"
 import { X, Plus, ImageIcon } from "lucide-react"
+import apiClient from "../../../services/apiClient.js";
+
 
 export default function AddCarModal({ onClose, onAddCar }) {
     const [formData, setFormData] = useState({
-        carName: "",
-        carType: "",
-        fuelType: "",
-        transmission: "",
-        seats: 3,
-        price: 0,
+        name: "",
+        year: 0,
         plateNumber: "",
-        year: new Date().getFullYear(),
+        carType: "",
+        mileage: 3000,
+        transmissionType: "",
+        fuelType: "",
+        engineNumber: "1234",
+        chassisNumber: "",
+        seats: 0,
+        pricePerDay: 0,
         description: "",
-        available: true,
+        status: "Available",
     })
 
     const [carImages, setCarImages] = useState([])
@@ -50,24 +55,30 @@ export default function AddCarModal({ onClose, onAddCar }) {
         })
     }
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault()
 
-        // Create car object with multiple images
-        const newCar = {
-            ...formData,
-            id: `CAR${Math.floor(Math.random() * 1000)}`,
-            images: previewImages, // Store all image URLs
-            imageUrl: previewImages[0] || null, // Keep the first image as the main one for backward compatibility
-            available: formData.available,
+        const requestData = new FormData()
+        requestData.append("carJson", JSON.stringify(formData))
+
+        for (let i = 0; i < carImages.length; i++) {
+            requestData.append("images", carImages[i])
         }
 
-        // Call parent handler if provided
-        if (onAddCar) {
-            onAddCar(newCar)
+        try {
+            // Send the request without manually setting the Content-Type header
+            const bookingResponse = await apiClient.post(
+                "http://localhost:8080/api/admin/cars",
+                requestData
+            );
+
+            console.log("Car added successfully:", bookingResponse.data);
+        } catch (error) {
+            console.error("Error adding car:", error.response ? error.response.data : error.message);
         }
 
-        console.log("Car added:", newCar)
+
+
         onClose()
     }
 
@@ -140,11 +151,37 @@ export default function AddCarModal({ onClose, onAddCar }) {
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Car Name</label>
                                     <input
                                         type="text"
-                                        name="carName"
-                                        value={formData.carName}
+                                        name="name"
+                                        value={formData.name}
                                         onChange={handleChange}
                                         className="w-full rounded-md border border-gray-300 px-3 py-2"
                                         placeholder="Car ni Diwata"
+                                    />
+                                </div>
+
+                                {/* Added Chassis Number Field */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Chassis Number</label>
+                                    <input
+                                        type="text"
+                                        name="chassisNumber"
+                                        value={formData.chassisNumber}
+                                        onChange={handleChange}
+                                        className="w-full rounded-md border border-gray-300 px-3 py-2"
+                                        placeholder="Enter chassis number"
+                                    />
+                                </div>
+
+                                {/* Engine Number Field */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Engine Number</label>
+                                    <input
+                                        type="text"
+                                        name="engineNumber"
+                                        value={formData.engineNumber}
+                                        onChange={handleChange}
+                                        className="w-full rounded-md border border-gray-300 px-3 py-2"
+                                        placeholder="Enter engine number"
                                     />
                                 </div>
 
@@ -184,8 +221,8 @@ export default function AddCarModal({ onClose, onAddCar }) {
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Transmission Type</label>
                                     <select
-                                        name="transmission"
-                                        value={formData.transmission}
+                                        name="transmissionType"
+                                        value={formData.transmissionType}
                                         onChange={handleChange}
                                         className="w-full rounded-md border border-gray-300 px-3 py-2"
                                     >
@@ -215,8 +252,8 @@ export default function AddCarModal({ onClose, onAddCar }) {
                                             <span className="mr-2">₱</span>
                                             <input
                                                 type="number"
-                                                name="price"
-                                                value={formData.price}
+                                                name="pricePerDay"
+                                                value={formData.pricePerDay}
                                                 onChange={handleChange}
                                                 min="0"
                                                 className="w-full rounded-md border border-gray-300 px-3 py-2"
@@ -252,28 +289,17 @@ export default function AddCarModal({ onClose, onAddCar }) {
                                     </div>
                                 </div>
 
-                                <div className="mb-4">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Availability Status</label>
-                                    <div className="flex items-center">
-                                        <div className="relative inline-block w-10 mr-2 align-middle select-none">
-                                            <input
-                                                type="checkbox"
-                                                name="available"
-                                                id="available"
-                                                checked={formData.available}
-                                                onChange={(e) => setFormData({ ...formData, available: e.target.checked })}
-                                                className="sr-only"
-                                            />
-                                            <div className="block bg-gray-300 w-10 h-6 rounded-full"></div>
-                                            <div
-                                                className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${formData.available ? "transform translate-x-4" : ""
-                                                    }`}
-                                            ></div>
-                                        </div>
-                                        <label htmlFor="available" className="text-sm text-gray-700">
-                                            {formData.available ? "Available" : "Unavailable"}
-                                        </label>
-                                    </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                    <select
+                                        name="status"
+                                        value={formData.status}
+                                        onChange={handleChange}
+                                        className="w-full rounded-md border border-gray-300 px-3 py-2"
+                                    >
+                                        <option value="Available">Available</option>
+                                        <option value="Archived">Archived</option>
+                                    </select>
                                 </div>
 
                                 <div>

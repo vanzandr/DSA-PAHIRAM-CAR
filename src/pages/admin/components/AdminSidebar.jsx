@@ -1,64 +1,65 @@
-import { Link } from "react-router-dom"
-import { LayoutDashboard, Car, Calendar, BookOpen, Settings, BarChart } from "lucide-react"
-import { useNotifications } from "../../../context/NotificationContext"
+"use client"
+import { Link, useLocation } from "react-router-dom"
+import { Home, Calendar, Car, Users, LogOut, User, Clock, FileText, UserPlus } from "lucide-react"
+import {useAuth} from "../../../context/AuthContext.jsx";
+
 
 export default function AdminSidebar({ active }) {
-    const { unreadCount } = useNotifications()
+    const location = useLocation()
+    const { logout, currentUser } = useAuth()
+
+    const menuItems = [
+        { name: "Dashboard", icon: Home, path: "/admin", id: "dashboard" },
+        { name: "Bookings", icon: Calendar, path: "/admin/bookings", id: "bookings" },
+        { name: "Reservations", icon: Clock, path: "/admin/reservations", id: "reservations" },
+        { name: "Cars", icon: Car, path: "/admin/cars", id: "cars" },
+        { name: "Customers", icon: Users, path: "/admin/customers", id: "customers" },
+        { name: "Employees", icon: UserPlus, path: "/admin/employees", id: "employees" },
+        { name: "Reports", icon: FileText, path: "/admin/reports", id: "reports" },
+    ]
 
     return (
-        <div className="w-64 bg-white border-r border-gray-200 min-h-screen">
-            <div className="p-6">{/* Removed the PahiramCar logo and text from here */}</div>
-            <nav className="mt-6">
-                <Link
-                    to="/admin"
-                    className={`flex items-center px-6 py-4 ${active === "dashboard" ? "bg-gray-100 border-l-4 border-black" : ""
-                        }`}
+        <div className="w-64 bg-white h-screen shadow-sm flex flex-col">
+            <div className="p-6 border-b">
+                <h1 className="text-xl font-bold">Car Rental</h1>
+                <p className="text-sm text-gray-600">Admin Portal</p>
+            </div>
+
+            <div className="flex-1 overflow-y-auto py-4">
+                <nav className="px-4 space-y-1">
+                    {menuItems.map((item) => (
+                        <Link
+                            key={item.id}
+                            to={item.path}
+                            className={`flex items-center px-4 py-3 text-sm rounded-md ${
+                                active === item.id ? "bg-black text-white" : "text-gray-700 hover:bg-gray-100"
+                            }`}
+                        >
+                            <item.icon className="h-5 w-5 mr-3" />
+                            {item.name}
+                        </Link>
+                    ))}
+                </nav>
+            </div>
+
+            <div className="p-4 border-t">
+                <div className="flex items-center mb-4 px-4 py-2">
+                    <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center mr-3">
+                        <User className="h-4 w-4 text-gray-600" />
+                    </div>
+                    <div>
+                        <p className="text-sm font-medium">Admin</p>
+                        <p className="text-xs text-gray-500">{currentUser?.email || "Admin"}</p>
+                    </div>
+                </div>
+                <button
+                    onClick={logout}
+                    className="flex items-center px-4 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-100 w-full"
                 >
-                    <LayoutDashboard className="h-5 w-5 mr-3 text-gray-500" />
-                    <span>Dashboard</span>
-                </Link>
-                <Link
-                    to="/admin/cars"
-                    className={`flex items-center px-6 py-4 ${active === "cars" ? "bg-gray-100 border-l-4 border-black" : ""}`}
-                >
-                    <Car className="h-5 w-5 mr-3 text-gray-500" />
-                    <span>Cars</span>
-                </Link>
-                <Link
-                    to="/admin/reservations"
-                    className={`flex items-center px-6 py-4 ${active === "reservations" ? "bg-gray-100 border-l-4 border-black" : ""
-                        }`}
-                >
-                    <Calendar className="h-5 w-5 mr-3 text-gray-500" />
-                    <span>Reservations</span>
-                    {unreadCount > 0 && active !== "reservations" && (
-                        <span className="ml-auto bg-red-600 text-white text-xs px-2 py-1 rounded-full">{unreadCount}</span>
-                    )}
-                </Link>
-                <Link
-                    to="/admin/bookings"
-                    className={`flex items-center px-6 py-4 ${active === "bookings" ? "bg-gray-100 border-l-4 border-black" : ""
-                        }`}
-                >
-                    <BookOpen className="h-5 w-5 mr-3 text-gray-500" />
-                    <span>Bookings</span>
-                </Link>
-                <Link
-                    to="/admin/reports"
-                    className={`flex items-center px-6 py-4 ${active === "reports" ? "bg-gray-100 border-l-4 border-black" : ""}`}
-                >
-                    <BarChart className="h-5 w-5 mr-3 text-gray-500" />
-                    <span>Reports</span>
-                </Link>
-                <Link
-                    to="/admin/settings"
-                    className={`flex items-center px-6 py-4 ${active === "settings" ? "bg-gray-100 border-l-4 border-black" : ""
-                        }`}
-                >
-                    <Settings className="h-5 w-5 mr-3 text-gray-500" />
-                    <span>Settings</span>
-                </Link>
-            </nav>
+                    <LogOut className="h-5 w-5 mr-3" />
+                    Logout
+                </button>
+            </div>
         </div>
     )
 }

@@ -4,71 +4,143 @@ import { useState, useEffect } from "react"
 import { useBookings } from "../../../context/BookingContext"
 import { useCars } from "../../../context/CarContext"
 import PaymentModal from "./PaymentModal"
+import {useAuth} from "../../../context/AuthContext.jsx";
+import { FileText } from "lucide-react"
+import apiClient from "../../../services/apiClient.js";
+
+
 
 export default function ReservationModal({ reservation, onClose }) {
-    const { addBooking } = useBookings()
+    const { addBooking, getActiveBookings } = useBookings()
     const { getCarById } = useCars()
+    const { currentUser } = useAuth()
+
+    const customerId = parseInt(currentUser?.id?.replace(/\D/g, ""), 10) // ✅ FIXED
 
     const [formData, setFormData] = useState({
-        fullName: "Diwata Pares Overcook",
-        contactNumber: "63912-345-6789",
-        licenseId: "1234 5678 9123",
+        firstName: "",
+        middleName: "",
+        lastName: "",
+        mobilePhone: "",
+        nationality: "Filipino",
+        licenseId: "",
         paymentMethod: "Cash",
     })
 
-    const [licenseImage, setLicenseImage] = useState(null)
-    const [contractImage, setContractImage] = useState(null)
+    const [documentFiles, setDocumentFiles] = useState(null)
     const [showPaymentModal, setShowPaymentModal] = useState(false)
     const [bookingData, setBookingData] = useState(null)
     const [car, setCar] = useState(null)
+    const [validationError, setValidationError] = useState("")
+    const [isValidating, setIsValidating] = useState(false)
+    const [loading, setLoading] = useState(false)
 
     useEffect(() => {
-        if (reservation && reservation.carId) {
-            const carData = getCarById(reservation.carId)
-            setCar(carData)
-        }
+        if (!reservation) return
+
+        const carData = getCarById(reservation.carId)
+        if (carData) setCar(carData)
+
+        setFormData({
+            firstName: reservation.firstName || "",
+            middleName: reservation.middleName || "",
+            lastName: reservation.lastName || reservation.surname || "",
+            mobilePhone: reservation.mobilePhone || reservation.contactNumber || "",
+            nationality: reservation.nationality || "Filipino",
+            licenseId: "",
+            paymentMethod: "Cash",
+        })
     }, [reservation])
 
     const handleChange = (e) => {
         const { name, value } = e.target
-        setFormData((prev) => ({
-            ...prev,
-            [name]: value,
-        }))
+        setFormData((prev) => ({ ...prev, [name]: value }))
+    }
+
+    const checkExistingLicense = () => {
+        if (!formData.licenseId) {
+            setValidationError("Driver's license ID is required")
+            return false
+        }
+
+        setIsValidating(true)
+        setValidationError("")
+
+        try {
+            const activeBookings = getActiveBookings()
+            const exists = activeBookings.find(
+                (b) => b.licenseId?.toLowerCase() === formData.licenseId.toLowerCase()
+            )
+            setIsValidating(false)
+
+            if (exists) {
+                setValidationError("This driver's license already has an active booking.")
+                return false
+            }
+
+            return true
+        } catch (error) {
+            console.error("License check failed:", error)
+            setValidationError("Error validating license.")
+            setIsValidating(false)
+            return false
+        }
     }
 
     const handleSubmit = (e) => {
         e.preventDefault()
 
-        // Prepare booking data
+        if (!formData.licenseId) {
+            setValidationError("Driver's license ID is required")
+            return
+        }
+
+        if (!documentFiles) {
+            setValidationError("Please upload required documents.")
+            return
+        }
+
+        if (!checkExistingLicense()) return
+
         const booking = {
             carId: reservation.carId,
-            carName: car ? car.name : reservation.car,
-            customerName: formData.fullName,
-            contactNumber: formData.contactNumber,
+            carName: car?.name || reservation.car,
+            customerName: `${formData.firstName} ${formData.middleName} ${formData.lastName}`,
+            mobilePhone: formData.mobilePhone,
             licenseId: formData.licenseId,
-            paymentMethod: formData.paymentMethod,
+            nationality: formData.nationality,
+            paymentMethod: "Cash",
             startDate: reservation.startDate,
             endDate: reservation.endDate,
-            totalPrice: reservation.totalPrice || car.price * 7,
+            totalPrice: reservation.totalPrice || (car ? car.price * 7 : 0),
+            status: "Ongoing",
         }
 
         setBookingData(booking)
         setShowPaymentModal(true)
     }
 
-    const handlePaymentComplete = (paymentDetails) => {
-        // Add payment details to booking
+    const handlePaymentComplete = async () => {
         const completeBooking = {
             ...bookingData,
             paymentStatus: "Paid",
-            paymentMethod: paymentDetails.method,
+            paymentMethod: "Cash",
+            paymentDate: new Date().toISOString(),
+            startDateTime: new Date(bookingData.startDate).toISOString(),
+            endDateTime: new Date(bookingData.endDate).toISOString(),
         }
 
-        // Add booking to context
-        addBooking(completeBooking)
+        try {
+            addBooking(completeBooking)
+            await apiClient.post(`/api/customer/${customerId}/reservations`, completeBooking)
 
-        onClose()
+            alert("Booking created successfully!")
+            window.location.href = "/admin/bookings"
+            onClose()
+        } catch (error) {
+            console.error("Error creating booking:", error)
+            alert("Failed to create booking: " + (error.response?.data?.message || error.message))
+        }
     }
 
     const handleClosePaymentModal = () => {
@@ -115,9 +187,15 @@ export default function ReservationModal({ reservation, onClose }) {
                             </div>
                         </div>
 
-                        <div>
-                            <h3 className="font-medium mb-2">Plate Number</h3>
-                            <p className="text-gray-700">{car.plateNumber || "DIWATA009"}</p>
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <h3 className="font-medium mb-2">Plate Number</h3>
+                                <p className="text-gray-700">{car.plateNumber || "DIWATA009"}</p>
+                            </div>
+                            <div>
+                                <h3 className="font-medium mb-2">Chassis Number</h3>
+                                <p className="text-gray-700">{car.chassisNumber || "N/A"}</p>
+                            </div>
                         </div>
 
                         <div className="mt-4 grid grid-cols-2 gap-4">
@@ -136,28 +214,68 @@ export default function ReservationModal({ reservation, onClose }) {
                     <div className="p-8">
                         <h2 className="text-xl font-bold mb-6">Booking Information</h2>
 
+                        {validationError && (
+                            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md">{validationError}</div>
+                        )}
+
                         <form onSubmit={handleSubmit}>
                             <div className="space-y-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Renter's Full Name</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
                                         <input
                                             type="text"
-                                            name="fullName"
-                                            value={formData.fullName}
-                                            onChange={handleChange}
-                                            className="w-full rounded-md border border-gray-300 px-3 py-2"
+                                            name="firstName"
+                                            value={formData.firstName}
+                                            className="w-full rounded-md border border-gray-300 px-3 py-2 bg-gray-50"
+                                            readOnly
                                         />
                                     </div>
 
                                     <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Middle Name</label>
+                                        <input
+                                            type="text"
+                                            name="middleName"
+                                            value={formData.middleName}
+                                            className="w-full rounded-md border border-gray-300 px-3 py-2 bg-gray-50"
+                                            readOnly
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Lastname</label>
+                                        <input
+                                            type="text"
+                                            name="lastName"
+                                            value={formData.lastName}
+                                            className="w-full rounded-md border border-gray-300 px-3 py-2 bg-gray-50"
+                                            readOnly
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Contact Number</label>
                                         <input
                                             type="text"
-                                            name="contactNumber"
-                                            value={formData.contactNumber}
+                                            name="mobilePhone"
+                                            value={formData.mobilePhone}
                                             onChange={handleChange}
                                             className="w-full rounded-md border border-gray-300 px-3 py-2"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Nationality</label>
+                                        <input
+                                            type="text"
+                                            name="nationality"
+                                            value={formData.nationality}
+                                            className="w-full rounded-md border border-gray-300 px-3 py-2 bg-gray-50"
+                                            readOnly
                                         />
                                     </div>
                                 </div>
@@ -170,57 +288,57 @@ export default function ReservationModal({ reservation, onClose }) {
                                             name="licenseId"
                                             value={formData.licenseId}
                                             onChange={handleChange}
-                                            className="w-full rounded-md border border-gray-300 px-3 py-2"
+                                            className={`w-full rounded-md border ${validationError && validationError.includes("license") ? "border-red-500" : "border-gray-300"} px-3 py-2`}
+                                            required
                                         />
+                                        {isValidating && <p className="mt-1 text-sm text-blue-600">Validating license...</p>}
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">License Image</label>
-                                        <button
-                                            type="button"
-                                            onClick={() => document.getElementById("licenseUpload").click()}
-                                            className="w-full rounded-md border border-gray-300 px-3 py-2 bg-white text-gray-700"
-                                        >
-                                            Upload Image
-                                        </button>
-                                        <input
-                                            id="licenseUpload"
-                                            type="file"
-                                            className="hidden"
-                                            onChange={(e) => setLicenseImage(e.target.files[0])}
-                                        />
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Required Documents</label>
+                                        <div className="space-y-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => document.getElementById("documentsUpload").click()}
+                                                className={`w-full rounded-md border ${!documentFiles && validationError && validationError.includes("documents") ? "border-red-500" : "border-gray-300"} px-3 py-2 bg-white text-gray-700`}
+                                            >
+                                                {documentFiles ? `${documentFiles.length} file(s) selected` : "Upload Documents"}
+                                            </button>
+                                            <input
+                                                id="documentsUpload"
+                                                type="file"
+                                                className="hidden"
+                                                onChange={(e) => setDocumentFiles(e.target.files)}
+                                                multiple
+                                                required
+                                            />
+                                            <div className="text-xs text-gray-500">
+                                                <div className="flex items-center mb-1">
+                                                    <FileText className="h-3 w-3 mr-1" />
+                                                    <span>Driver's License</span>
+                                                </div>
+                                                <div className="flex items-center mb-1">
+                                                    <FileText className="h-3 w-3 mr-1" />
+                                                    <span>Signed Contract</span>
+                                                </div>
+                                                <div className="flex items-center">
+                                                    <FileText className="h-3 w-3 mr-1" />
+                                                    <span>Booking Proof</span>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Signed Contract Image</label>
-                                    <button
-                                        type="button"
-                                        onClick={() => document.getElementById("contractUpload").click()}
-                                        className="w-full rounded-md border border-gray-300 px-3 py-2 bg-white text-gray-700"
-                                    >
-                                        Upload Image
-                                    </button>
-                                    <input
-                                        id="contractUpload"
-                                        type="file"
-                                        className="hidden"
-                                        onChange={(e) => setContractImage(e.target.files[0])}
-                                    />
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
-                                    <select
-                                        name="paymentMethod"
-                                        value={formData.paymentMethod}
-                                        onChange={handleChange}
-                                        className="w-full rounded-md border border-gray-300 px-3 py-2"
-                                    >
-                                        <option value="Cash">Cash</option>
-                                        <option value="Debit Card">Debit Card</option>
-                                        <option value="Credit Card">Credit Card</option>
-                                    </select>
+                                    <input
+                                        type="text"
+                                        value="Cash"
+                                        disabled
+                                        className="w-full rounded-md border border-gray-300 px-3 py-2 bg-gray-50"
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">Only cash payments are accepted</p>
                                 </div>
 
                                 <div className="bg-gray-50 p-4 rounded-lg">
@@ -228,8 +346,8 @@ export default function ReservationModal({ reservation, onClose }) {
                                     <div className="flex justify-between mb-2">
                                         <span className="text-gray-600">Amount Due</span>
                                         <span>
-                                            ₱ {car.price} x {Math.round(reservation.totalPrice / car.price)} days
-                                        </span>
+                      ₱ {car.price} x {Math.round(reservation.totalPrice / car.price)} days
+                    </span>
                                     </div>
                                     <div className="flex justify-between font-bold">
                                         <span>Total</span>
@@ -238,11 +356,27 @@ export default function ReservationModal({ reservation, onClose }) {
                                 </div>
 
                                 <div className="flex justify-end space-x-4">
-                                    <button type="button" onClick={onClose} className="px-4 py-2 border border-gray-300 rounded-md">
+                                    <button
+                                        type="button"
+                                        onClick={onClose}
+                                        className="px-4 py-2 border border-gray-300 rounded-md"
+                                        disabled={loading}
+                                    >
                                         Cancel
                                     </button>
-                                    <button type="submit" className="px-4 py-2 bg-black text-white rounded-md">
-                                        Proceed
+                                    <button
+                                        type="submit"
+                                        className="px-4 py-2 bg-black text-white rounded-md"
+                                        disabled={loading || isValidating}
+                                    >
+                                        {loading ? (
+                                            <span className="flex items-center">
+                        <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>
+                        Processing...
+                      </span>
+                                        ) : (
+                                            "Proceed"
+                                        )}
                                     </button>
                                 </div>
                             </div>
@@ -254,7 +388,12 @@ export default function ReservationModal({ reservation, onClose }) {
             {/* Payment Modal */}
             {showPaymentModal && (
                 <PaymentModal
-                    booking={bookingData}
+                    booking={{
+                        carName: car.name,
+                        price: car.price,
+                        days: Math.round(reservation.totalPrice / car.price),
+                        totalAmount: reservation.totalPrice,
+                    }}
                     onClose={handleClosePaymentModal}
                     onPaymentComplete={handlePaymentComplete}
                 />

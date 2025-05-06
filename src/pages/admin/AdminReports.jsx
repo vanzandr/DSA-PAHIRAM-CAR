@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Download, Calendar, Filter, ArrowUpRight, ArrowDownRight, DollarSign, Users } from "lucide-react"
-import AdminSidebar from "./components/AdminSidebar"
+import AdminSidebar from "./components/AdminSidebar.jsx"
 
 // Demo data for transactions
 const transactions = [
@@ -331,42 +331,42 @@ export default function AdminReports() {
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Car Model
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Total Bookings
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Revenue Generated
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Utilization Rate
-                                    </th>
-                                </tr>
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Car Model
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Total Bookings
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Revenue Generated
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Utilization Rate
+                                </th>
+                            </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                                {carPerformance.map((car) => (
-                                    <tr key={car.car}>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{car.car}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{car.bookings}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            ₱ {car.revenue.toLocaleString()}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center">
-                                                <div className="w-full bg-gray-200 rounded-full h-2.5">
-                                                    <div
-                                                        className="bg-black h-2.5 rounded-full"
-                                                        style={{ width: `${(car.bookings / 30) * 100}%` }}
-                                                    ></div>
-                                                </div>
-                                                <span className="ml-2 text-sm text-gray-600">{Math.round((car.bookings / 30) * 100)}%</span>
+                            {carPerformance.map((car) => (
+                                <tr key={car.car}>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{car.car}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{car.bookings}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        ₱ {car.revenue.toLocaleString()}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="flex items-center">
+                                            <div className="w-full bg-gray-200 rounded-full h-2.5">
+                                                <div
+                                                    className="bg-black h-2.5 rounded-full"
+                                                    style={{ width: `${(car.bookings / 30) * 100}%` }}
+                                                ></div>
                                             </div>
-                                        </td>
-                                    </tr>
-                                ))}
+                                            <span className="ml-2 text-sm text-gray-600">{Math.round((car.bookings / 30) * 100)}%</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
                             </tbody>
                         </table>
                     </div>
@@ -380,55 +380,55 @@ export default function AdminReports() {
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Transaction ID
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Date
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Customer
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Car
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Type
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Amount
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Payment Method
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Status
-                                    </th>
-                                </tr>
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Transaction ID
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Date
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Customer
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Car
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Type
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Amount
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Payment Method
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Status
+                                </th>
+                            </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                                {transactions.map((transaction) => (
-                                    <tr key={transaction.id}>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{transaction.id}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{transaction.date}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{transaction.customer}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{transaction.car}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{transaction.type}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            ₱ {transaction.amount.toLocaleString()}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{transaction.paymentMethod}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                            {transactions.map((transaction) => (
+                                <tr key={transaction.id}>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{transaction.id}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{transaction.date}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{transaction.customer}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{transaction.car}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{transaction.type}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        ₱ {transaction.amount.toLocaleString()}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{transaction.paymentMethod}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
                                             <span
                                                 className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
                         ${transaction.status === "Completed" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}
                                             >
                                                 {transaction.status}
                                             </span>
-                                        </td>
-                                    </tr>
-                                ))}
+                                    </td>
+                                </tr>
+                            ))}
                             </tbody>
                         </table>
                     </div>

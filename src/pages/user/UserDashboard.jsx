@@ -2,23 +2,21 @@
 
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
-import { Car, Calendar, Clock, ArrowRight, FileText, X } from "lucide-react"
+import { Car, Calendar, Clock, ArrowRight } from "lucide-react"
 import { useAuth } from "../../context/AuthContext"
 import { useReservations } from "../../context/ReservationContext"
 import { useBookings } from "../../context/BookingContext"
-import { useNotifications } from "../../context/NotificationContext"
 
 export default function UserDashboard() {
     const { currentUser } = useAuth()
-    const { getUserReservations, getUserRecentActivities } = useReservations()
+    const { getUserReservations } = useReservations()
     const { getUserBookings } = useBookings()
-    const { getUserNotifications, markAsRead } = useNotifications()
 
     const [activeReservations, setActiveReservations] = useState(0)
     const [activeRentals, setActiveRentals] = useState(0)
     const [completedRentals, setCompletedRentals] = useState(0)
-    const [recentActivities, setRecentActivities] = useState([])
-    const [userNotifications, setUserNotifications] = useState([])
+    const [recentReservations, setRecentReservations] = useState([])
+    const [recentTransactions, setRecentTransactions] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
 
@@ -28,8 +26,6 @@ export default function UserDashboard() {
                 // Get user reservations and active bookings
                 const reservations = getUserReservations ? getUserReservations() : []
                 const bookings = getUserBookings ? getUserBookings() : []
-                const notifications = getUserNotifications ? getUserNotifications() : []
-                const activities = getUserRecentActivities ? getUserRecentActivities() : []
 
                 // Count active reservations (not cancelled or converted)
                 const activeReservs = reservations.filter(
@@ -46,25 +42,40 @@ export default function UserDashboard() {
                 setActiveReservations(activeReservs)
                 setActiveRentals(activeRents)
                 setCompletedRentals(completedRents)
-                setUserNotifications(notifications)
 
-                // Create recent activities from both reservations, bookings, and cancellations
-                const allActivities = [
-                    ...activities,
-                    ...(bookings || []).map((b) => ({
-                        id: `book-${b.id}`,
-                        type: b.status === "Completed" ? "return" : "rental",
-                        action: b.status.toLowerCase(),
+                // Recent Reservations - sort by date (newest first) and take only the first 5
+                const sortedReservations = [...reservations]
+                    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                    .slice(0, 5)
+
+                setRecentReservations(
+                    sortedReservations.map((r) => ({
+                        id: r.id,
+                        carName: r.carName || "Car",
+                        date: new Date(r.createdAt).toLocaleDateString(),
+                        status: r.status,
+                        timestamp: r.createdAt,
+                        pickupDate: r.pickupDate,
+                        returnDate: r.returnDate,
+                    })),
+                )
+
+                // Recent Transactions - sort by date (newest first) and take only the first 5
+                const sortedTransactions = [...bookings]
+                    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                    .slice(0, 5)
+
+                setRecentTransactions(
+                    sortedTransactions.map((b) => ({
+                        id: b.id,
                         carName: b.carName || "Car",
                         date: new Date(b.createdAt).toLocaleDateString(),
                         status: b.status,
                         timestamp: b.createdAt,
+                        amount: b.totalAmount || "N/A",
+                        paymentStatus: b.paymentStatus || "Pending",
                     })),
-                ]
-
-                // Sort by date (newest first) and take only the first 5
-                allActivities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-                setRecentActivities(allActivities.slice(0, 5))
+                )
             }
         } catch (err) {
             console.error("Error loading dashboard data:", err)
@@ -72,22 +83,7 @@ export default function UserDashboard() {
         } finally {
             setLoading(false)
         }
-    }, [currentUser, getUserReservations, getUserBookings, getUserNotifications, getUserRecentActivities])
-
-    const handleMarkAsRead = (notificationId) => {
-        try {
-            if (markAsRead) {
-                markAsRead(notificationId)
-                setUserNotifications((prev) =>
-                    prev.map((notification) =>
-                        notification.id === notificationId ? { ...notification, read: true } : notification,
-                    ),
-                )
-            }
-        } catch (err) {
-            console.error("Error marking notification as read:", err)
-        }
-    }
+    }, [currentUser, getUserReservations, getUserBookings])
 
     if (loading) {
         return (
@@ -140,39 +136,6 @@ export default function UserDashboard() {
                     </div>
                 </div>
 
-                {/* Quick Actions */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                    <div className="bg-black text-white rounded-lg shadow-sm p-6">
-                        <h2 className="text-xl font-bold mb-4">Rent a Car</h2>
-                        <p className="mb-6">Browse our selection of quality vehicles and rent your perfect car today.</p>
-                        <Link
-                            to="/browse-cars"
-                            className="inline-flex items-center bg-white text-black px-4 py-2 rounded-md hover:bg-gray-100"
-                        >
-                            Browse Cars <ArrowRight className="ml-2 h-4 w-4" />
-                        </Link>
-                    </div>
-
-                    <div className="bg-gray-800 text-white rounded-lg shadow-sm p-6">
-                        <h2 className="text-xl font-bold mb-4">View Your Reservations</h2>
-                        <p className="mb-6">Check the status of your current car reservations and bookings.</p>
-                        <div className="flex space-x-4">
-                            <Link
-                                to="/reserved-cars"
-                                className="inline-flex items-center bg-white text-black px-4 py-2 rounded-md hover:bg-gray-100"
-                            >
-                                Reserved Cars
-                            </Link>
-                            <Link
-                                to="/rented-cars"
-                                className="inline-flex items-center bg-white text-black px-4 py-2 rounded-md hover:bg-gray-100"
-                            >
-                                Rented Cars
-                            </Link>
-                        </div>
-                    </div>
-                </div>
-
                 {/* Stats Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     <div className="bg-white rounded-lg shadow-sm p-6">
@@ -209,72 +172,50 @@ export default function UserDashboard() {
                     </div>
                 </div>
 
-                {/* Recent Activity and Notifications */}
+                {/* Recent Reservations and Transactions */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                    {/* Recent Activity */}
+                    {/* Recent Reservations */}
                     <div className="bg-white rounded-lg shadow-sm overflow-hidden">
                         <div className="px-6 py-4 border-b border-gray-200">
-                            <h2 className="text-lg font-semibold">Recent Activity</h2>
+                            <h2 className="text-lg font-semibold">Recent Reservations</h2>
                         </div>
 
                         <div className="divide-y divide-gray-200">
-                            {recentActivities.length === 0 ? (
-                                <div className="p-6 text-center text-gray-500">No recent activity</div>
+                            {recentReservations.length === 0 ? (
+                                <div className="p-6 text-center text-gray-500">No recent reservations</div>
                             ) : (
                                 <div className="max-h-96 overflow-y-auto">
-                                    {recentActivities.map((activity) => (
-                                        <div key={activity.id} className="p-6 border-b border-gray-100">
+                                    {recentReservations.map((reservation) => (
+                                        <div key={reservation.id} className="p-6 border-b border-gray-100">
                                             <div className="flex items-start">
                                                 <div
-                                                    className={`rounded-full p-2 mr-4 ${activity.type === "reservation"
-                                                            ? activity.action === "cancelled"
-                                                                ? "bg-red-100 text-red-600"
-                                                                : "bg-blue-100 text-blue-600"
-                                                            : activity.type === "rental"
-                                                                ? "bg-green-100 text-green-600"
-                                                                : "bg-purple-100 text-purple-600"
-                                                        }`}
+                                                    className={`rounded-full p-2 mr-4 ${reservation.status === "Cancelled" ? "bg-red-100 text-red-600" : "bg-blue-100 text-blue-600"
+                                                    }`}
                                                 >
-                                                    {activity.type === "reservation" ? (
-                                                        activity.action === "cancelled" ? (
-                                                            <X className="h-5 w-5" />
-                                                        ) : (
-                                                            <Calendar className="h-5 w-5" />
-                                                        )
-                                                    ) : activity.type === "rental" ? (
-                                                        <Car className="h-5 w-5" />
-                                                    ) : (
-                                                        <Clock className="h-5 w-5" />
-                                                    )}
+                                                    <Calendar className="h-5 w-5" />
                                                 </div>
                                                 <div className="flex-1">
                                                     <div className="flex justify-between">
-                                                        <h3 className="font-medium">
-                                                            {activity.type === "reservation"
-                                                                ? activity.action === "cancelled"
-                                                                    ? "Reservation Cancelled"
-                                                                    : "Car Reserved"
-                                                                : activity.type === "rental"
-                                                                    ? "Car Rented"
-                                                                    : "Car Returned"}
-                                                        </h3>
+                                                        <h3 className="font-medium">{reservation.carName}</h3>
                                                         <span
-                                                            className={`px-2 py-1 text-xs rounded-full ${activity.status === "Active" || activity.status === "Pending Confirmation"
-                                                                    ? "bg-blue-100 text-blue-800"
-                                                                    : activity.status === "Ongoing"
-                                                                        ? "bg-green-100 text-green-800"
-                                                                        : activity.status === "Cancelled"
-                                                                            ? "bg-red-100 text-red-800"
-                                                                            : "bg-gray-100 text-gray-800"
-                                                                }`}
+                                                            className={`px-2 py-1 text-xs rounded-full ${reservation.status === "Active" || reservation.status === "Pending Confirmation"
+                                                                ? "bg-blue-100 text-blue-800"
+                                                                : reservation.status === "Cancelled"
+                                                                    ? "bg-red-100 text-red-800"
+                                                                    : "bg-gray-100 text-gray-800"
+                                                            }`}
                                                         >
-                                                            {activity.status}
+                                                            {reservation.status}
                                                         </span>
                                                     </div>
-                                                    <p className="text-gray-600">{activity.carName}</p>
-                                                    <p className="text-sm text-gray-500 mt-1">
-                                                        {new Date(activity.timestamp).toLocaleDateString()} at{" "}
-                                                        {new Date(activity.timestamp).toLocaleTimeString()}
+                                                    <p className="text-sm text-gray-600 mt-1">
+                                                        Pickup: {new Date(reservation.pickupDate).toLocaleDateString()}
+                                                    </p>
+                                                    <p className="text-sm text-gray-600">
+                                                        Return: {new Date(reservation.returnDate).toLocaleDateString()}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500 mt-1">
+                                                        Reserved on: {new Date(reservation.timestamp).toLocaleDateString()}
                                                     </p>
                                                 </div>
                                             </div>
@@ -285,55 +226,61 @@ export default function UserDashboard() {
                         </div>
                     </div>
 
-                    {/* Notifications */}
+                    {/* Recent Transactions */}
                     <div className="bg-white rounded-lg shadow-sm overflow-hidden">
                         <div className="px-6 py-4 border-b border-gray-200">
-                            <h2 className="text-lg font-semibold">Notifications</h2>
+                            <h2 className="text-lg font-semibold">Recent Transactions</h2>
                         </div>
 
-                        <div className="divide-y divide-gray-200 max-h-96 overflow-y-auto">
-                            {userNotifications.length === 0 ? (
-                                <div className="p-6 text-center text-gray-500">No notifications</div>
+                        <div className="divide-y divide-gray-200">
+                            {recentTransactions.length === 0 ? (
+                                <div className="p-6 text-center text-gray-500">No recent transactions</div>
                             ) : (
-                                userNotifications.map((notification) => (
-                                    <div
-                                        key={notification.id}
-                                        className={`p-4 hover:bg-gray-50 cursor-pointer ${!notification.read ? "bg-blue-50" : ""}`}
-                                        onClick={() => handleMarkAsRead(notification.id)}
-                                    >
-                                        <div className="flex items-start">
-                                            <div
-                                                className={`rounded-full p-2 mr-3 ${notification.type === "reservation"
-                                                        ? "bg-blue-100 text-blue-600"
-                                                        : notification.type === "cancellation"
-                                                            ? "bg-red-100 text-red-600"
-                                                            : "bg-green-100 text-green-600"
+                                <div className="max-h-96 overflow-y-auto">
+                                    {recentTransactions.map((transaction) => (
+                                        <div key={transaction.id} className="p-6 border-b border-gray-100">
+                                            <div className="flex items-start">
+                                                <div
+                                                    className={`rounded-full p-2 mr-4 ${transaction.status === "Completed"
+                                                        ? "bg-purple-100 text-purple-600"
+                                                        : "bg-green-100 text-green-600"
                                                     }`}
-                                            >
-                                                {notification.type === "reservation" ? (
-                                                    <Calendar className="h-4 w-4" />
-                                                ) : notification.type === "cancellation" ? (
-                                                    <X className="h-4 w-4" />
-                                                ) : (
-                                                    <FileText className="h-4 w-4" />
-                                                )}
-                                            </div>
-                                            <div className="flex-1">
-                                                <div className="flex justify-between">
-                                                    <h4 className="font-medium text-sm">{notification.title}</h4>
-                                                    {!notification.read && (
-                                                        <span className="inline-block w-2 h-2 bg-blue-600 rounded-full"></span>
-                                                    )}
+                                                >
+                                                    <Car className="h-5 w-5" />
                                                 </div>
-                                                <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
-                                                <p className="text-xs text-gray-500 mt-1">
-                                                    {new Date(notification.timestamp).toLocaleDateString()} at{" "}
-                                                    {new Date(notification.timestamp).toLocaleTimeString()}
-                                                </p>
+                                                <div className="flex-1">
+                                                    <div className="flex justify-between">
+                                                        <h3 className="font-medium">{transaction.carName}</h3>
+                                                        <span
+                                                            className={`px-2 py-1 text-xs rounded-full ${transaction.status === "Ongoing"
+                                                                ? "bg-green-100 text-green-800"
+                                                                : transaction.status === "Completed"
+                                                                    ? "bg-purple-100 text-purple-800"
+                                                                    : "bg-gray-100 text-gray-800"
+                                                            }`}
+                                                        >
+                                                            {transaction.status}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex justify-between mt-1">
+                                                        <p className="text-sm text-gray-600">Amount: ${transaction.amount}</p>
+                                                        <span
+                                                            className={`px-2 py-1 text-xs rounded-full ${transaction.paymentStatus === "Paid"
+                                                                ? "bg-green-100 text-green-800"
+                                                                : "bg-yellow-100 text-yellow-800"
+                                                            }`}
+                                                        >
+                                                            {transaction.paymentStatus}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-xs text-gray-500 mt-1">
+                                                        Transaction date: {new Date(transaction.timestamp).toLocaleDateString()}
+                                                    </p>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))
+                                    ))}
+                                </div>
                             )}
                         </div>
                     </div>

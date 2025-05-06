@@ -1,107 +1,166 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect } from "react"
+import apiClient from "../services/apiClient.js";
+import {data} from "autoprefixer";
 
-// Create the authentication context
 const AuthContext = createContext(null)
 
-// Demo accounts
-const demoAccounts = {
+// Enhanced demo accounts with better security
+const DEMO_ACCOUNTS = {
     admin: {
-        id: "admin1",
-        fullName: "Admin User",
+        id: "admin_001",
+        username: "admin_user",
+        firstName: "Admin",
+        middleName: "",
+        lastName: "User",
         email: "admin@pahiramcar.com",
-        password: "admin123",
+        password: "Admin@123", // More secure password
         role: "admin",
         avatar: "https://i.pravatar.cc/150?img=68",
+        permissions: ["manage_users", "view_reports", "configure_settings"],
+        birthdate: "1985-05-15",
+        maritalStatus: "Married",
+        nationality: "American",
+    },
+    employee: {
+        id: "emp_007",
+        username: "ella_employee",
+        firstName: "Ella",
+        middleName: "",
+        lastName: "Empleyado",
+        email: "employee@pahiramcar.com",
+        password: "Employee@123",
+        role: "employee",
+        avatar: "https://i.pravatar.cc/150?img=47",
+        permissions: ["manage_bookings", "view_customers"],
+        birthdate: "1990-08-22",
+        maritalStatus: "Single",
+        nationality: "Filipino",
     },
     user: {
-        id: "user1",
-        fullName: "Diwata Pares",
-        email: "diwatapares@overcook.com",
-        password: "user123",
+        id: "user_100",
+        username: "diwata_user",
+        firstName: "Diwata",
+        middleName: "",
+        lastName: "Pares",
+        email: "user@example.com",
+        password: "User@123",
         role: "user",
         avatar: "https://i.pravatar.cc/150?img=33",
-        phone: "63912-456-7891",
+        mobilePhone: "+639123456789",
+        birthdate: "1995-03-10",
+        maritalStatus: "Single",
+        nationality: "Filipino",
     },
 }
 
 export const AuthProvider = ({ children }) => {
-    // Check if user data exists in localStorage
-    const storedUser = localStorage.getItem("pahiramcar_user")
-    const [currentUser, setCurrentUser] = useState(storedUser ? JSON.parse(storedUser) : null)
+    const [currentUser, setCurrentUser] = useState(null)
     const [loading, setLoading] = useState(true)
 
-    // Update localStorage when user changes
+    // Initialize auth state
+    useEffect(() => {
+        const initializeAuth = async () => {
+            try {
+                const storedUser = localStorage.getItem("pahiramcar_user")
+                if (storedUser) {
+                    const parsedUser = JSON.parse(storedUser)
+                    // Basic validation of stored user
+                    if (parsedUser?.id && parsedUser?.email && parsedUser?.role) {
+                        setCurrentUser(parsedUser)
+                    } else {
+                        localStorage.removeItem("pahiramcar_user")
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to initialize auth", error)
+                localStorage.removeItem("pahiramcar_user")
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        initializeAuth()
+    }, [])
+
+    // Persist user changes
     useEffect(() => {
         if (currentUser) {
             localStorage.setItem("pahiramcar_user", JSON.stringify(currentUser))
         } else {
             localStorage.removeItem("pahiramcar_user")
         }
-        setLoading(false)
     }, [currentUser])
 
-    // Login function
-    const login = (email, password) => {
-        // Check if email/password match any demo account
-        const adminAccount = demoAccounts.admin
-        const userAccount = demoAccounts.user
+    const login = async (username, password) => {
+        setLoading(true);
 
-        if (email === adminAccount.email && password === adminAccount.password) {
-            // Remove password from stored user data for security
-            const { password, ...userWithoutPassword } = adminAccount
-            setCurrentUser(userWithoutPassword)
-            return { success: true, user: userWithoutPassword }
-        } else if (email === userAccount.email && password === userAccount.password) {
-            const { password, ...userWithoutPassword } = userAccount
-            setCurrentUser(userWithoutPassword)
-            return { success: true, user: userWithoutPassword }
+        try {
+            const response = await fetch("http://localhost:8080/api/auth/authenticate", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ username, password }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || "Login failed");
+            }
+
+            setCurrentUser(data);
+            return { success: true };
+        } catch (error) {
+            console.error("Login error:", error);
+            return { success: false, error: error.message || "Network or server error" };
+        } finally {
+            setLoading(false);
         }
+    };
 
-        return { success: false, error: "Invalid email or password" }
+    const loginAsDemo = async (role) => {
+        try {
+            setLoading(true)
+            await new Promise((resolve) => setTimeout(resolve, 500))
+
+            const account = DEMO_ACCOUNTS[role]
+            if (!account) {
+                return { success: false, error: "Invalid demo account type" }
+            }
+
+            const { password: _, ...userWithoutPassword } = account
+            setCurrentUser(userWithoutPassword)
+            return { success: true }
+        } catch (error) {
+            console.error("Demo login failed:", error)
+            return { success: false, error: "Failed to login as demo user" }
+        } finally {
+            setLoading(false)
+        }
     }
 
-    // Login as demo user function
-    const loginAsDemo = (role) => {
-        const account = demoAccounts[role]
-        if (account) {
-            const { password, ...userWithoutPassword } = account
-            setCurrentUser(userWithoutPassword)
-            return { success: true, user: userWithoutPassword }
-        }
-        return { success: false, error: "Invalid role" }
-    }
-
-    // Logout function
     const logout = () => {
         setCurrentUser(null)
+        localStorage.removeItem("pahiramcar_user")
     }
 
-    // Check if user is authenticated
-    const isAuthenticated = !!currentUser
+    const value = {
+        currentUser,
+        login,
+        loginAsDemo,
+        logout,
+        isAuthenticated: !!currentUser,
+        isAdmin: currentUser?.role === "admin",
+        isEmployee: currentUser?.role === "employee",
+        loading,
+    }
 
-    // Check if user is admin
-    const isAdmin = currentUser?.role === "admin"
-
-    return (
-        <AuthContext.Provider
-            value={{
-                currentUser,
-                login,
-                loginAsDemo,
-                logout,
-                isAuthenticated,
-                isAdmin,
-                loading,
-            }}
-        >
-            {children}
-        </AuthContext.Provider>
-    )
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
-// Custom hook to use the auth context
 export const useAuth = () => {
     const context = useContext(AuthContext)
     if (!context) {
