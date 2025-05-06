@@ -3,14 +3,15 @@
 import { useState, useEffect } from "react"
 import { Search, AlertCircle, CheckCircle } from "lucide-react"
 import AdminSidebar from "./components/AdminSidebar.jsx"
-import ReservationModal from "./components/ReservationModal"
+import ReservationModal from "../../components/shared/ReservationModal.jsx"
 import PaymentModal from "./components/PaymentModal"
 import { useReservations } from "../../context/ReservationContext"
 import { useCars } from "../../context/CarContext"
 import { useBookings } from "../../context/BookingContext"
 
 export default function AdminReservations() {
-    const { reservations, updateReservation, cancelReservation } = useReservations()
+    const { reservations, updateReservation, cancelReservation, checkExpiredReservations, RESERVATION_STATUS } =
+        useReservations()
     const { cars, getCarById } = useCars()
     const { addBooking } = useBookings()
 
@@ -26,6 +27,9 @@ export default function AdminReservations() {
 
     useEffect(() => {
         if (reservations.length > 0 && cars.length > 0) {
+            // Check for expired reservations
+            checkExpiredReservations()
+
             const processedReservations = reservations.map((reservation) => {
                 const car = getCarById(reservation.carId)
                 return {
@@ -61,9 +65,10 @@ export default function AdminReservations() {
 
         // Apply filter
         if (filter !== "all") {
-            if (filter === "active") result = result.filter((r) => r.status === "Active")
-            if (filter === "pending") result = result.filter((r) => r.status === "Waiting for Approval")
-            if (filter === "cancelled") result = result.filter((r) => r.status === "Cancelled")
+            if (filter === "waiting") result = result.filter((r) => r.status === RESERVATION_STATUS.WAITING_FOR_APPROVAL)
+            if (filter === "booked") result = result.filter((r) => r.status === RESERVATION_STATUS.BOOKED)
+            if (filter === "cancelled") result = result.filter((r) => r.status === RESERVATION_STATUS.CANCELLED)
+            if (filter === "expired") result = result.filter((r) => r.status === RESERVATION_STATUS.EXPIRED)
         }
 
         // Apply search
@@ -102,16 +107,18 @@ export default function AdminReservations() {
         setActionInProgress(reservationId)
 
         try {
-            // Update reservation status to Active
+            // Update reservation status to WAITING_FOR_APPROVAL
             const updatedReservation = {
                 ...reservations.find((r) => r.id === reservationId),
-                status: "Active",
+                status: RESERVATION_STATUS.WAITING_FOR_APPROVAL,
             }
 
             updateReservation(updatedReservation)
 
             // Update UI
-            setFilteredReservations((prev) => prev.map((r) => (r.id === reservationId ? { ...r, status: "Active" } : r)))
+            setFilteredReservations((prev) =>
+                prev.map((r) => (r.id === reservationId ? { ...r, status: RESERVATION_STATUS.WAITING_FOR_APPROVAL } : r)),
+            )
 
             // Show success message
             setStatusMessage({
@@ -142,7 +149,9 @@ export default function AdminReservations() {
                 cancelReservation(reservationId)
 
                 // Update UI
-                setFilteredReservations((prev) => prev.map((r) => (r.id === reservationId ? { ...r, status: "Cancelled" } : r)))
+                setFilteredReservations((prev) =>
+                    prev.map((r) => (r.id === reservationId ? { ...r, status: RESERVATION_STATUS.CANCELLED } : r)),
+                )
 
                 // Show success message
                 setStatusMessage({
@@ -189,19 +198,19 @@ export default function AdminReservations() {
         // Update reservation status
         const updatedReservation = {
             ...selectedReservation,
-            status: "Converted to Booking",
+            status: RESERVATION_STATUS.BOOKED,
         }
         updateReservation(updatedReservation)
 
         // Update UI
         setFilteredReservations((prev) =>
-            prev.map((r) => (r.id === selectedReservation.id ? { ...r, status: "Converted to Booking" } : r)),
+            prev.map((r) => (r.id === selectedReservation.id ? { ...r, status: RESERVATION_STATUS.BOOKED } : r)),
         )
 
         // Show success message
         setStatusMessage({
             type: "success",
-            message: "Reservation converted to booking successfully",
+            message: "Reservation booked successfully",
         })
 
         // Clear message after 3 seconds
@@ -218,25 +227,15 @@ export default function AdminReservations() {
         const isProcessing = actionInProgress === reservation.id
 
         switch (reservation.status) {
-            case "Active":
-                return (
-                    <button
-                        onClick={() => handleBookNow(reservation)}
-                        className="px-4 py-2 bg-black text-white rounded-md text-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
-                        disabled={isProcessing}
-                    >
-                        {isProcessing ? "Processing..." : "Book Now"}
-                    </button>
-                )
-            case "Waiting for Approval":
+            case RESERVATION_STATUS.WAITING_FOR_APPROVAL:
                 return (
                     <div className="flex gap-2">
                         <button
-                            onClick={() => handleConfirmReservation(reservation.id)}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            onClick={() => handleBookNow(reservation)}
+                            className="px-4 py-2 bg-black text-white rounded-md text-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
                             disabled={isProcessing}
                         >
-                            {isProcessing ? "Processing..." : "Confirm"}
+                            {isProcessing ? "Processing..." : "Book Now"}
                         </button>
                         <button
                             onClick={() => handleCancelReservation(reservation.id)}
@@ -247,23 +246,45 @@ export default function AdminReservations() {
                         </button>
                     </div>
                 )
-            case "Expired":
+            case RESERVATION_STATUS.EXPIRED:
                 return (
                     <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-md bg-gray-200 text-gray-800">
             Expired
           </span>
                 )
-            case "Converted to Booking":
+            case RESERVATION_STATUS.BOOKED:
                 return (
                     <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-md bg-green-200 text-green-800">
-            Converted
+            Booked
           </span>
                 )
-            case "Cancelled":
+            case RESERVATION_STATUS.CANCELLED:
                 return (
                     <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-md bg-gray-200 text-gray-800">
             Cancelled
           </span>
+                )
+            // Handle legacy status values
+            case "Active":
+            case "Pending Confirmation":
+            case "Waiting for Approval":
+                return (
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => handleBookNow(reservation)}
+                            className="px-4 py-2 bg-black text-white rounded-md text-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            disabled={isProcessing}
+                        >
+                            {isProcessing ? "Processing..." : "Book Now"}
+                        </button>
+                        <button
+                            onClick={() => handleCancelReservation(reservation.id)}
+                            className="px-4 py-2 bg-red-600 text-white rounded-md text-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            disabled={isProcessing}
+                        >
+                            {isProcessing ? "Processing..." : "Cancel"}
+                        </button>
+                    </div>
                 )
             default:
                 return (
@@ -281,18 +302,39 @@ export default function AdminReservations() {
     // Function to determine the status badge style
     const getStatusBadgeClass = (status) => {
         switch (status) {
+            case RESERVATION_STATUS.WAITING_FOR_APPROVAL:
+                return "bg-yellow-100 text-yellow-800"
+            case RESERVATION_STATUS.EXPIRED:
+                return "bg-gray-100 text-gray-800"
+            case RESERVATION_STATUS.BOOKED:
+                return "bg-blue-100 text-blue-800"
+            case RESERVATION_STATUS.CANCELLED:
+                return "bg-red-100 text-red-800"
+            // Handle legacy status values
             case "Active":
+            case "Available":
                 return "bg-green-100 text-green-800"
+            case "Pending Confirmation":
             case "Waiting for Approval":
                 return "bg-yellow-100 text-yellow-800"
-            case "Expired":
-                return "bg-gray-100 text-gray-800"
-            case "Converted to Booking":
-                return "bg-blue-100 text-blue-800"
-            case "Cancelled":
-                return "bg-red-100 text-red-800"
             default:
                 return "bg-gray-100 text-gray-800"
+        }
+    }
+
+    // Function to display a user-friendly status label
+    const getStatusLabel = (status) => {
+        switch (status) {
+            case RESERVATION_STATUS.WAITING_FOR_APPROVAL:
+                return "Waiting for Approval"
+            case RESERVATION_STATUS.BOOKED:
+                return "Booked"
+            case RESERVATION_STATUS.CANCELLED:
+                return "Cancelled"
+            case RESERVATION_STATUS.EXPIRED:
+                return "Expired"
+            default:
+                return status
         }
     }
 
@@ -361,22 +403,28 @@ export default function AdminReservations() {
                             All
                         </button>
                         <button
-                            onClick={() => setFilter("active")}
-                            className={`px-4 py-2 rounded-md ${filter === "active" ? "bg-black text-white" : "bg-white text-gray-700 border"}`}
+                            onClick={() => setFilter("waiting")}
+                            className={`px-4 py-2 rounded-md ${filter === "waiting" ? "bg-black text-white" : "bg-white text-gray-700 border"}`}
                         >
-                            Active
+                            Waiting for Approval
                         </button>
                         <button
-                            onClick={() => setFilter("pending")}
-                            className={`px-4 py-2 rounded-md ${filter === "pending" ? "bg-black text-white" : "bg-white text-gray-700 border"}`}
+                            onClick={() => setFilter("booked")}
+                            className={`px-4 py-2 rounded-md ${filter === "booked" ? "bg-black text-white" : "bg-white text-gray-700 border"}`}
                         >
-                            Pending
+                            Booked
                         </button>
                         <button
                             onClick={() => setFilter("cancelled")}
                             className={`px-4 py-2 rounded-md ${filter === "cancelled" ? "bg-black text-white" : "bg-white text-gray-700 border"}`}
                         >
                             Cancelled
+                        </button>
+                        <button
+                            onClick={() => setFilter("expired")}
+                            className={`px-4 py-2 rounded-md ${filter === "expired" ? "bg-black text-white" : "bg-white text-gray-700 border"}`}
+                        >
+                            Expired
                         </button>
                     </div>
                 </div>
@@ -430,7 +478,7 @@ export default function AdminReservations() {
                       <span
                           className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(reservation.status)}`}
                       >
-                        {reservation.status}
+                        {getStatusLabel(reservation.status)}
                       </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -465,3 +513,4 @@ export default function AdminReservations() {
         </div>
     )
 }
+

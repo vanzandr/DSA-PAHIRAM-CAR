@@ -2,7 +2,7 @@
 
 import { Eye } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
-import {useEffect, useState} from "react"
+import { useEffect, useState } from "react"
 import { useAuth } from "../context/AuthContext"
 
 export default function Login() {
@@ -16,9 +16,9 @@ export default function Login() {
     // Redirect if already logged in
     useEffect(() => {
         if (isAuthenticated) {
-            navigate("/");
+            navigate("/")
         }
-    }, [isAuthenticated, navigate]);
+    }, [isAuthenticated, navigate])
 
     const handleSubmit = async (e) => {
         e.preventDefault()
@@ -37,6 +37,8 @@ export default function Login() {
         if (result.success) {
             if (role === "admin") {
                 navigate("/admin")
+            } else if (role === "employee") {
+                navigate("/employee")
             } else {
                 navigate("/")
             }
@@ -62,7 +64,6 @@ export default function Login() {
                                 Username
                             </label>
                             <input
-
                                 id="username"
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
@@ -113,13 +114,20 @@ export default function Login() {
                             </div>
                         </div>
 
-                        <div className="mt-6 grid grid-cols-2 gap-3">
+                        <div className="mt-6 grid grid-cols-3 gap-3">
                             <button
                                 type="button"
                                 onClick={() => handleDemoLogin("user")}
                                 className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
                             >
                                 Demo User
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleDemoLogin("employee")}
+                                className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
+                            >
+                                Demo Employee
                             </button>
                             <button
                                 type="button"

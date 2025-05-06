@@ -1,8 +1,7 @@
 "use client"
 import { Link, useLocation } from "react-router-dom"
 import { Home, Calendar, Car, Users, LogOut, User, Clock, FileText, UserPlus } from "lucide-react"
-import {useAuth} from "../../../context/AuthContext.jsx";
-
+import { useAuth } from "../../../context/AuthContext.jsx"
 
 export default function AdminSidebar({ active }) {
     const location = useLocation()
@@ -10,12 +9,12 @@ export default function AdminSidebar({ active }) {
 
     const menuItems = [
         { name: "Dashboard", icon: Home, path: "/admin", id: "dashboard" },
-        { name: "Bookings", icon: Calendar, path: "/admin/bookings", id: "bookings" },
-        { name: "Reservations", icon: Clock, path: "/admin/reservations", id: "reservations" },
         { name: "Cars", icon: Car, path: "/admin/cars", id: "cars" },
+        { name: "Reservations", icon: Clock, path: "/admin/reservations", id: "reservations" },
+        { name: "Bookings", icon: Calendar, path: "/admin/bookings", id: "bookings" },
+        { name: "Reports", icon: FileText, path: "/admin/reports", id: "reports" },
         { name: "Customers", icon: Users, path: "/admin/customers", id: "customers" },
         { name: "Employees", icon: UserPlus, path: "/admin/employees", id: "employees" },
-        { name: "Reports", icon: FileText, path: "/admin/reports", id: "reports" },
     ]
 
     return (

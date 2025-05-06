@@ -11,17 +11,12 @@ export default function AdminEmployees() {
             id: "EMP001",
             name: "John Doe",
             email: "john.doe@example.com",
-            role: "Manager",
-            department: "Operations",
-            joinDate: "2023-01-15",
             status: "Active",
         },
         {
             id: "EMP002",
             name: "Jane Smith",
             email: "jane.smith@example.com",
-            role: "Rental Agent",
-            department: "Customer Service",
             joinDate: "2023-03-22",
             status: "Active",
         },
@@ -29,8 +24,6 @@ export default function AdminEmployees() {
             id: "EMP003",
             name: "Robert Johnson",
             email: "robert.johnson@example.com",
-            role: "Maintenance",
-            department: "Technical",
             joinDate: "2023-02-10",
             status: "Active",
         },
@@ -38,8 +31,6 @@ export default function AdminEmployees() {
             id: "EMP004",
             name: "Sarah Williams",
             email: "sarah.williams@example.com",
-            role: "Rental Agent",
-            department: "Customer Service",
             joinDate: "2023-04-05",
             status: "Inactive",
         },
@@ -52,16 +43,14 @@ export default function AdminEmployees() {
     const [loading, setLoading] = useState(false)
 
     useEffect(() => {
-        // Filter employees based on search term
+        // Filter employees based on search term (name, email, ID only)
         const filtered = employees.filter(
             (employee) =>
                 employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                employee.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                employee.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                employee.department.toLowerCase().includes(searchTerm.toLowerCase()),
-        )
-        setFilteredEmployees(filtered)
+                employee.id.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+        setFilteredEmployees(filtered);
     }, [employees, searchTerm])
 
     const handleAddEmployee = (newEmployee) => {
@@ -191,12 +180,6 @@ export default function AdminEmployees() {
                                     Email
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Role
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Department
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Join Date
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -213,19 +196,17 @@ export default function AdminEmployees() {
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{employee.id}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{employee.name}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{employee.email}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{employee.role}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{employee.department}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {new Date(employee.joinDate).toLocaleDateString()}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                          className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                              employee.status === "Active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                          }`}
-                      >
+                    <span
+                        className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            employee.status === "Active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                        }`}
+                    >
                         {employee.status}
-                      </span>
+                    </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         <div className="flex space-x-2">
@@ -241,7 +222,7 @@ export default function AdminEmployees() {
                                                 className="text-red-600 hover:text-red-800"
                                                 title="Delete"
                                             >
-                                                <Trash2 className="h-4 w-4" />
+                                                <Trash2 className="h-4 w-4"/>
                                             </button>
                                         </div>
                                     </td>
@@ -254,7 +235,8 @@ export default function AdminEmployees() {
             </div>
 
             {/* Add Employee Modal */}
-            {showAddModal && <AddEmployeeModal onClose={() => setShowAddModal(false)} onAddEmployee={handleAddEmployee} />}
+            {showAddModal &&
+                <AddEmployeeModal onClose={() => setShowAddModal(false)} onAddEmployee={handleAddEmployee}/>}
         </div>
     )
 }

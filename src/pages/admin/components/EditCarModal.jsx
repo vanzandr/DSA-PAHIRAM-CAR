@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from "react"
 import { X, Plus, ImageIcon } from "lucide-react"
+import apiClient from "../../../services/apiClient.js";
 
 
 export default function EditCarModal({ car, onClose, onSave }) {
     const [formData, setFormData] = useState({
         carName: "",
         chassisNumber: "",
-        engineNumber: "", // Added engine number
+        engineNumber: "",
         carType: "",
         fuelType: "",
         transmission: "",
@@ -17,7 +18,7 @@ export default function EditCarModal({ car, onClose, onSave }) {
         plateNumber: "",
         year: new Date().getFullYear(),
         description: "",
-        status: "Available", // Changed from available boolean to status string
+        status: "Available",
     })
 
     const [carImages, setCarImages] = useState([])
@@ -28,7 +29,7 @@ export default function EditCarModal({ car, onClose, onSave }) {
             setFormData({
                 carName: car.name || "",
                 chassisNumber: car.chassisNumber || "",
-                engineNumber: car.engineNumber || "", // Initialize engine number
+                engineNumber: car.engineNumber || "",
                 carType: car.type || "",
                 fuelType: car.fuelType || "",
                 transmission: car.transmission || "",
@@ -36,17 +37,14 @@ export default function EditCarModal({ car, onClose, onSave }) {
                 price: car.price || 0,
                 plateNumber: car.plateNumber || "",
                 year: car.year || new Date().getFullYear(),
-                description:
-                    car.description ||
-                    "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
-                status: car.status || (car.available ? "Available" : "Archived"), // Convert from boolean to string if needed
+                description: car.description ||
+                    "Lorem ipsum dolor sit amet...",
+                status: car.status || (car.available ? "Available" : "Archived"),
             })
 
-            // Initialize images from car data
             if (car.images && car.images.length > 0) {
                 setPreviewImages(car.images)
             } else if (car.imageUrl) {
-                // For backward compatibility
                 setPreviewImages([car.imageUrl])
             }
         }
@@ -64,19 +62,14 @@ export default function EditCarModal({ car, onClose, onSave }) {
         const files = Array.from(e.target.files)
         if (files.length === 0) return
 
-        // Create preview URLs for the images
         const newPreviewImages = files.map((file) => URL.createObjectURL(file))
-
-        // Add new images to existing ones
         setCarImages((prev) => [...prev, ...files])
         setPreviewImages((prev) => [...prev, ...newPreviewImages])
     }
 
     const removeImage = (index) => {
-        // Remove the image at the specified index
         setCarImages((prev) => prev.filter((_, i) => i !== index))
         setPreviewImages((prev) => {
-            // Only revoke URL if it's a blob URL (not an existing image URL)
             if (prev[index].startsWith("blob:")) {
                 URL.revokeObjectURL(prev[index])
             }
@@ -84,38 +77,69 @@ export default function EditCarModal({ car, onClose, onSave }) {
         })
     }
 
-    const handleSubmit = (e) => {
-        e.preventDefault()
-
-        // Process editing car with multiple images
-        const updatedCar = {
-            ...car,
-            name: formData.carName,
-            chassisNumber: formData.chassisNumber,
-            engineNumber: formData.engineNumber, // Add engine number to updated car
-            type: formData.carType,
-            fuelType: formData.fuelType,
-            transmission: formData.transmission,
-            seats: formData.seats,
-            price: formData.price,
-            plateNumber: formData.plateNumber,
-            year: formData.year,
-            description: formData.description,
-            images: previewImages,
-            imageUrl: previewImages[0] || car.imageUrl, // Keep the first image as the main one
-            status: formData.status, // Use status string instead of available boolean
-            available: formData.status === "Available", // For backward compatibility
-        }
-
-        // Call parent handler if provided
-        if (onSave) {
-            onSave(updatedCar)
-        }
-
-        console.log("Car updated:", updatedCar)
-        onClose()
+    const extractImageIdFromUrl = (url) => {
+        const parts = url.split("/")
+        const fileName = parts[parts.length - 1]
+        return fileName.split(".")[0] // Adjust if backend uses different pattern
     }
 
+    const handleSubmit = async (e) => {
+        e.preventDefault()
+
+        try {
+            // Map frontend fields to backend expectations
+            const updatedCar = {
+                name: formData.carName,
+                chassisNumber: formData.chassisNumber,
+                engineNumber: formData.engineNumber,
+                car_type: formData.carType,                  // ✅ correct backend field
+                fuel_type: formData.fuelType,
+                transmission_type: formData.transmission,
+                seats: formData.seats,
+                price_per_day: formData.price,
+                plate_number: formData.plateNumber,
+                year: formData.year,
+                description: formData.description,
+                status: formData.status,
+                is_archived: formData.status !== "Available",
+                available: formData.status === "Available",
+            }
+
+            // Send PUT request to update car
+            await apiClient.put(`/api/admin/cars/${car.id}/edit`, updatedCar)
+
+            // Upload new images if any
+            if (carImages.length > 0) {
+                const imageFormData = new FormData()
+                carImages.forEach((file) => imageFormData.append("images", file))
+
+                await apiClient.post(`/api/admin/cars/${car.id}/images`, imageFormData, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                })
+            }
+
+            // Remove deleted images
+            const originalImageUrls = car.images || []
+            const currentImageUrls = previewImages.filter((url) => !url.startsWith("blob:"))
+            const deletedImages = originalImageUrls.filter(
+                (url) => !currentImageUrls.includes(url)
+            )
+
+            for (const imageUrl of deletedImages) {
+                const imageId = extractImageIdFromUrl(imageUrl)
+                await apiClient.delete(`/api/admin/cars/${car.id}/images/${imageId}`)
+            }
+
+            if (onSave) {
+                onSave({ ...updatedCar, images: currentImageUrls })
+            }
+
+            onClose()
+        } catch (err) {
+            console.error("Update failed:", err)
+            alert("Failed to update car.")
+        }
+    }
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto">

@@ -127,7 +127,7 @@ const initialCars = [
 
 
 
-    // Add other cars as needed
+
 ]
 
 export const CarProvider = ({ children }) => {
@@ -136,10 +136,25 @@ export const CarProvider = ({ children }) => {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        localStorage.setItem("pahiramcar_cars", JSON.stringify(cars))
-        setLoading(false)
-    }, [cars])
+        const isDemoMode = !localStorage.getItem("token") || localStorage.getItem("token") === "demo-token"
 
+        if (isDemoMode) {
+            console.log(" Demo mode: loading cars from initial data")
+            setCars(initialCars)
+            localStorage.setItem("pahiramcar_cars", JSON.stringify(initialCars))
+            setLoading(false)
+            return
+        }
+
+        if (storedCars) {
+            setCars(JSON.parse(storedCars))
+        } else {
+            setCars(initialCars)
+            localStorage.setItem("pahiramcar_cars", JSON.stringify(initialCars))
+        }
+
+        setLoading(false)
+    }, [])
     const addCar = (car) => {
         const newCar = {
             ...car,
@@ -162,7 +177,7 @@ export const CarProvider = ({ children }) => {
     }
 
     const getCarById = (carId) => {
-        return cars.find(car => car.id === carId)
+        return cars.find(car => String(car.id) === String(carId))
     }
 
     // ✅ Fully backend-compatible update

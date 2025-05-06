@@ -4,13 +4,17 @@ import { createContext, useContext, useState, useEffect } from "react"
 import { useAuth } from "./AuthContext"
 import { useCars } from "./CarContext"
 import { useNotifications } from "./NotificationContext"
-import apiClient from "../services/apiClient.js";
-import axios from "axios"
+import apiClient from "../services/apiClient"
 
-// Create the reservation context
 const ReservationContext = createContext(null)
 
-// Initial reservation data
+export const RESERVATION_STATUS = {
+  WAITING_FOR_APPROVAL: "WAITING_FOR_APPROVAL",
+  BOOKED: "BOOKED",
+  CANCELLED: "CANCELLED",
+  EXPIRED: "EXPIRED",
+}
+
 const initialReservations = [
   {
     id: "R001",
@@ -24,27 +28,9 @@ const initialReservations = [
     nationality: "Filipino",
     startDate: "2025-05-01",
     endDate: "2025-05-08",
-    status: "Active",
+    status: RESERVATION_STATUS.WAITING_FOR_APPROVAL,
     totalPrice: 31500,
     createdAt: "2025-04-28T10:00:00Z",
-    hasLicenseFile: true,
-    hasContractFile: true,
-  },
-  {
-    id: "R002",
-    carId: "2",
-    userId: "user1",
-    customerName: "Diwata Pares",
-    firstName: "Diwata",
-    middleName: "",
-    lastName: "Pares",
-    mobilePhone: "63912-345-6789",
-    nationality: "Filipino",
-    startDate: "2025-05-10",
-    endDate: "2025-05-17",
-    status: "Pending Confirmation",
-    totalPrice: 29400,
-    createdAt: "2025-04-29T14:30:00Z",
     hasLicenseFile: true,
     hasContractFile: true,
   },
@@ -55,39 +41,41 @@ export const ReservationProvider = ({ children }) => {
   const { updateCarAvailability, getCarById } = useCars()
   const { addNotification } = useNotifications()
 
-  const storedReservations = localStorage.getItem("pahiramcar_reservations")
-  const [reservations, setReservations] = useState(
-      storedReservations ? JSON.parse(storedReservations) : []
-  )
+  const [reservations, setReservations] = useState([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
 
   useEffect(() => {
+    if (!currentUser?.id) return
+
     const fetchReservations = async () => {
-      if (!currentUser?.id) {
-        setLoading(false)
-        return
-      }
+      const token = localStorage.getItem("token")
+      const isDemo = !token || token === "demo-token"
+      const isEmployeeDemo = isDemo && currentUser?.role === "employee"
+
+      setLoading(true)
 
       try {
-        setLoading(true)
-        setError(null)
+        if (isDemo || isEmployeeDemo) {
+          console.log(" Demo mode: loading reservations from localStorage")
 
-        const response = await apiClient.get(`/api/customer/reservations/${currentUser.id}`, {
-          withCredentials: true,
-        })
-
-        if (response.data && Array.isArray(response.data)) {
-          setReservations(response.data)
-          localStorage.setItem("pahiramcar_reservations", JSON.stringify(response.data))
+          const localData = localStorage.getItem("pahiramcar_reservations")
+          if (localData) {
+            setReservations(JSON.parse(localData))
+          } else {
+            setReservations(initialReservations)
+          }
         } else {
-          throw new Error("Invalid reservations data format")
+          const response = await apiClient.get(`/api/customer/reservations/${currentUser.id}`)
+          if (response.data && Array.isArray(response.data)) {
+            setReservations(response.data)
+            localStorage.setItem("pahiramcar_reservations", JSON.stringify(response.data))
+          } else {
+            throw new Error("Invalid reservations data format")
+          }
         }
-      } catch (error) {
-        console.error("Failed to get reservations", error)
-        if (storedReservations) {
-          setReservations(JSON.parse(storedReservations))
-        }
+      } catch (err) {
+        console.error(" Failed to get reservations:", err)
+        setReservations(initialReservations)
       } finally {
         setLoading(false)
       }
@@ -103,7 +91,7 @@ export const ReservationProvider = ({ children }) => {
 
   const addReservation = async (reservation) => {
     if (!currentUser?.id || typeof currentUser.id !== "number") {
-      throw new Error("❌ currentUser.id is invalid (must be a number).")
+      throw new Error("currentUser.id must be a number.")
     }
 
     const reservationId = `R${Date.now().toString().slice(-6)}`
@@ -112,9 +100,9 @@ export const ReservationProvider = ({ children }) => {
     const newReservation = {
       ...reservation,
       id: reservationId,
-      userId: currentUser.id, // ✅ must be integer
+      userId: currentUser.id,
       createdAt: new Date().toISOString(),
-      status: "Waiting for Approval",
+      status: RESERVATION_STATUS.WAITING_FOR_APPROVAL,
       customerName,
       firstName: currentUser.firstName || "",
       middleName: currentUser.middleName || "",
@@ -124,12 +112,7 @@ export const ReservationProvider = ({ children }) => {
     }
 
     try {
-      const res = await apiClient.post(
-          `/api/customer/${currentUser.id}/reservations`,
-          newReservation,
-          { withCredentials: true }
-      )
-
+      const res = await apiClient.post(`/api/customer/${currentUser.id}/reservations`, newReservation)
       setReservations((prev) => [...prev, res.data])
       updateCarAvailability(newReservation.carId, false)
 
@@ -152,23 +135,18 @@ export const ReservationProvider = ({ children }) => {
       return res.data
     } catch (error) {
       console.error("❌ Failed to add reservation:", error)
-      throw error // ✅ correct variable name
+      throw error
     } finally {
       setLoading(false)
     }
   }
+
   const updateReservation = async (updatedData) => {
     try {
       setLoading(true)
-      const response = await apiClient.put(`/api/reservations/${updatedData.id}`, updatedData, {
-        withCredentials: true,
-      })
-
-      const updated = reservations.map((r) =>
-          r.id === updatedData.id ? response.data : r
-      )
+      const response = await apiClient.put(`/api/reservations/${updatedData.id}`, updatedData)
+      const updated = reservations.map((r) => (r.id === updatedData.id ? response.data : r))
       persistReservations(updated)
-
       return response.data
     } catch (err) {
       console.error("Failed to update reservation:", err)
@@ -183,14 +161,11 @@ export const ReservationProvider = ({ children }) => {
     if (!reservation) return false
 
     try {
-      await apiClient.put(`/api/customer/reservation/${reservationId}/cancel`, {}, {
-        withCredentials: true,
-      })
-
+      await apiClient.put(`/api/customer/reservation/${reservationId}/cancel`)
       updateCarAvailability(reservation.carId, true)
 
       const updated = reservations.map((r) =>
-          r.id === reservationId ? { ...r, status: "Cancelled" } : r
+          r.id === reservationId ? { ...r, status: RESERVATION_STATUS.CANCELLED } : r
       )
       setReservations(updated)
 
@@ -209,21 +184,6 @@ export const ReservationProvider = ({ children }) => {
         },
       })
 
-      if (currentUser) {
-        addNotification({
-          type: "cancellation",
-          title: "Reservation Cancelled",
-          message: `Your reservation for ${car?.name} has been cancelled`,
-          userId: currentUser.id,
-          data: {
-            reservationId,
-            carId: reservation.carId,
-            carName: car?.name,
-            timestamp: new Date().toISOString(),
-          },
-        })
-      }
-
       return true
     } catch (error) {
       console.error("Failed to cancel reservation:", error)
@@ -236,7 +196,7 @@ export const ReservationProvider = ({ children }) => {
     if (!reservation) return null
     setReservations((prev) =>
         prev.map((r) =>
-            r.id === reservationId ? { ...r, status: "Converted to Booking" } : r
+            r.id === reservationId ? { ...r, status: RESERVATION_STATUS.BOOKED } : r
         )
     )
     return { ...reservation, ...bookingData }
@@ -244,23 +204,31 @@ export const ReservationProvider = ({ children }) => {
 
   const getUserReservations = () => {
     if (!currentUser) return []
-    return reservations
-        .filter((r) => r.userId === currentUser.id)
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    return reservations.filter((r) => r.userId === currentUser.id).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
   }
 
   const getActiveReservations = () => {
-    return reservations.filter(
-        (r) => r.status === "Active" || r.status === "Pending Confirmation"
-    )
+    return reservations.filter((r) => r.status === RESERVATION_STATUS.WAITING_FOR_APPROVAL)
+  }
+
+  const checkExpiredReservations = () => {
+    const today = new Date()
+    const updated = reservations.map((r) => {
+      if (r.status === RESERVATION_STATUS.WAITING_FOR_APPROVAL && new Date(r.endDate) < today) {
+        return { ...r, status: RESERVATION_STATUS.EXPIRED }
+      }
+      return r
+    })
+
+    if (JSON.stringify(updated) !== JSON.stringify(reservations)) {
+      persistReservations(updated)
+    }
+
+    return updated.filter((r) => r.status === RESERVATION_STATUS.EXPIRED)
   }
 
   const isCarReserved = (carId) => {
-    return reservations.some(
-        (r) =>
-            r.carId === carId &&
-            (r.status === "Active" || r.status === "Pending Confirmation")
-    )
+    return reservations.some((r) => r.carId === carId && r.status === RESERVATION_STATUS.WAITING_FOR_APPROVAL)
   }
 
   const getReservationsByCarId = (carId) => {
@@ -269,9 +237,7 @@ export const ReservationProvider = ({ children }) => {
 
   const getUserRecentActivities = () => {
     if (!currentUser) return []
-    const userReservations = reservations.filter(
-        (r) => r.userId === currentUser.id
-    )
+    const userReservations = reservations.filter((r) => r.userId === currentUser.id)
 
     return userReservations
         .map((reservation) => {
@@ -279,14 +245,9 @@ export const ReservationProvider = ({ children }) => {
           return {
             id: reservation.id,
             type: "reservation",
-            action: reservation.status === "Cancelled" ? "cancelled" : "created",
+            action: reservation.status === RESERVATION_STATUS.CANCELLED ? "cancelled" : "created",
             carName: car?.name || "Unknown Car",
-            timestamp:
-                reservation.status === "Cancelled"
-                    ? reservation.cancelledAt ||
-                    reservation.updatedAt ||
-                    reservation.createdAt
-                    : reservation.createdAt,
+            timestamp: reservation.cancelledAt || reservation.updatedAt || reservation.createdAt,
             status: reservation.status,
           }
         })
@@ -304,9 +265,11 @@ export const ReservationProvider = ({ children }) => {
             convertToBooking,
             getUserReservations,
             getActiveReservations,
+            checkExpiredReservations,
             isCarReserved,
             getReservationsByCarId,
             getUserRecentActivities,
+            RESERVATION_STATUS,
           }}
       >
         {children}

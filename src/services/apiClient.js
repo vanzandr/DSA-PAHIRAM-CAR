@@ -1,14 +1,13 @@
 import axios from 'axios';
 
 const apiClient = axios.create({
-    baseURL: 'http://localhost:8080' // optional
+    baseURL: 'http://localhost:8080', // adjust as needed
 });
 
-// Add a request interceptor
+// Automatically attach token to all requests
 apiClient.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('token');
-        console.log(token)
         if (token) {
             config.headers['Authorization'] = `Bearer ${token}`;
         }

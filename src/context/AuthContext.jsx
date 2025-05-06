@@ -93,6 +93,23 @@ export const AuthProvider = ({ children }) => {
         }
     }, [currentUser])
 
+    const parseJwt = (token) => {
+        try {
+            const base64Url = token.split(".")[1];
+            const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+            const jsonPayload = decodeURIComponent(
+                atob(base64)
+                    .split("")
+                    .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+                    .join("")
+            );
+            return JSON.parse(jsonPayload);
+        } catch (e) {
+            console.error("Failed to decode JWT:", e);
+            return null;
+        }
+    };
+
     const login = async (username, password) => {
         setLoading(true);
 
@@ -111,37 +128,58 @@ export const AuthProvider = ({ children }) => {
                 throw new Error(data.message || "Login failed");
             }
 
-            setCurrentUser(data);
+            const token = data.token;
+            if (!token) {
+                throw new Error("Token missing from login response");
+            }
+
+            const decoded = parseJwt(token);
+            console.log("✅ Decoded JWT:", decoded);
+
+            const fallbackUser = {
+                user_id: decoded?.id || null,
+                username: decoded?.sub || username,
+                email: decoded?.email || "",
+                role: decoded?.role || "user",
+            };
+
+            localStorage.setItem("token", token);
+            localStorage.setItem("pahiramcar_user", JSON.stringify(fallbackUser));
+            setCurrentUser(fallbackUser);
+
             return { success: true };
         } catch (error) {
-            console.error("Login error:", error);
-            return { success: false, error: error.message || "Network or server error" };
+            console.error(" Login error:", error);
+            return { success: false, error: error.message || "Login failed" };
         } finally {
             setLoading(false);
         }
     };
-
     const loginAsDemo = async (role) => {
         try {
-            setLoading(true)
-            await new Promise((resolve) => setTimeout(resolve, 500))
+            setLoading(true);
+            await new Promise((resolve) => setTimeout(resolve, 500));
 
-            const account = DEMO_ACCOUNTS[role]
+            const account = DEMO_ACCOUNTS[role];
             if (!account) {
-                return { success: false, error: "Invalid demo account type" }
+                return { success: false, error: "Invalid demo account type" };
             }
 
-            const { password: _, ...userWithoutPassword } = account
-            setCurrentUser(userWithoutPassword)
-            return { success: true }
-        } catch (error) {
-            console.error("Demo login failed:", error)
-            return { success: false, error: "Failed to login as demo user" }
-        } finally {
-            setLoading(false)
-        }
-    }
+            // ✅ Clear any real token
+            localStorage.removeItem("token");
 
+            const { password: _, ...userWithoutPassword } = account;
+            localStorage.setItem("pahiramcar_user", JSON.stringify(userWithoutPassword));
+            setCurrentUser(userWithoutPassword);
+
+            return { success: true };
+        } catch (error) {
+            console.error("Demo login failed:", error);
+            return { success: false, error: "Failed to login as demo user" };
+        } finally {
+            setLoading(false);
+        }
+    };
     const logout = () => {
         setCurrentUser(null)
         localStorage.removeItem("pahiramcar_user")

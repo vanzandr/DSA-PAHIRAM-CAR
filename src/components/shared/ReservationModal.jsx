@@ -1,21 +1,19 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useBookings } from "../../../context/BookingContext"
-import { useCars } from "../../../context/CarContext"
-import PaymentModal from "./PaymentModal"
-import {useAuth} from "../../../context/AuthContext.jsx";
+import { useBookings } from "../../context/BookingContext.jsx"
+import { useCars } from "../../context/CarContext.jsx"
+import PaymentModal from "../../pages/admin/components/PaymentModal.jsx"
+import {useAuth} from "../../context/AuthContext.jsx";
 import { FileText } from "lucide-react"
-import apiClient from "../../../services/apiClient.js";
+import apiClient from "../../services/apiClient.js";
 
 
 
 export default function ReservationModal({ reservation, onClose }) {
-    const { addBooking, getActiveBookings } = useBookings()
+    const { addBooking } = useBookings()
     const { getCarById } = useCars()
     const { currentUser } = useAuth()
-
-    const customerId = parseInt(currentUser?.id?.replace(/\D/g, ""), 10) // ✅ FIXED
 
     const [formData, setFormData] = useState({
         firstName: "",
@@ -35,11 +33,15 @@ export default function ReservationModal({ reservation, onClose }) {
     const [isValidating, setIsValidating] = useState(false)
     const [loading, setLoading] = useState(false)
 
-    useEffect(() => {
-        if (!reservation) return
+    uuseEffect(() => {
+        if (!reservation || !getCarById || formData) return
 
         const carData = getCarById(reservation.carId)
-        if (carData) setCar(carData)
+        if (!carData) {
+            console.warn("⚠ No car found for carId:", reservation.carId)
+        }
+
+        setCar(carData || null)
 
         setFormData({
             firstName: reservation.firstName || "",
@@ -50,14 +52,15 @@ export default function ReservationModal({ reservation, onClose }) {
             licenseId: "",
             paymentMethod: "Cash",
         })
-    }, [reservation])
 
-    const handleChange = (e) => {
+    }, [reservation, getCarById, formData])
+
+    const handleChange = useCallback((e) => {
         const { name, value } = e.target
         setFormData((prev) => ({ ...prev, [name]: value }))
-    }
+    }, [])
 
-    const checkExistingLicense = () => {
+    const checkExistingLicense = async () => {
         if (!formData.licenseId) {
             setValidationError("Driver's license ID is required")
             return false
@@ -67,13 +70,11 @@ export default function ReservationModal({ reservation, onClose }) {
         setValidationError("")
 
         try {
-            const activeBookings = getActiveBookings()
-            const exists = activeBookings.find(
-                (b) => b.licenseId?.toLowerCase() === formData.licenseId.toLowerCase()
-            )
-            setIsValidating(false)
+            const response = await apiClient.post("/api/employee/booking/check-driver-license-number", {
+                licenseId: formData.licenseId,
+            })
 
-            if (exists) {
+            if (response.data?.exists) {
                 setValidationError("This driver's license already has an active booking.")
                 return false
             }
@@ -82,12 +83,13 @@ export default function ReservationModal({ reservation, onClose }) {
         } catch (error) {
             console.error("License check failed:", error)
             setValidationError("Error validating license.")
-            setIsValidating(false)
             return false
+        } finally {
+            setIsValidating(false)
         }
     }
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault()
 
         if (!formData.licenseId) {
@@ -95,50 +97,57 @@ export default function ReservationModal({ reservation, onClose }) {
             return
         }
 
-        if (!documentFiles) {
-            setValidationError("Please upload required documents.")
-            return
-        }
+        // Optional: Add document upload validation here
+        // if (!documentFiles) ...
 
-        if (!checkExistingLicense()) return
+        const isValid = await checkExistingLicense()
+        if (!isValid) return
 
-        const booking = {
+        const fullName = `${formData.firstName} ${formData.middleName} ${formData.lastName}`.trim()
+
+        const calculatedTotalPrice = useMemo(() => {
+            return car ? car.price * 7 : reservation.totalPrice || 0
+        }, [car, reservation.totalPrice])
+
+        const newBooking = {
             carId: reservation.carId,
             carName: car?.name || reservation.car,
-            customerName: `${formData.firstName} ${formData.middleName} ${formData.lastName}`,
+            customerName: fullName,
             mobilePhone: formData.mobilePhone,
             licenseId: formData.licenseId,
             nationality: formData.nationality,
-            paymentMethod: "Cash",
+            paymentMethod: formData.paymentMethod,
             startDate: reservation.startDate,
             endDate: reservation.endDate,
-            totalPrice: reservation.totalPrice || (car ? car.price * 7 : 0),
+            totalPrice: calculatedTotalPrice,
             status: "Ongoing",
         }
 
-        setBookingData(booking)
+        setBookingData(newBooking)
         setShowPaymentModal(true)
     }
 
     const handlePaymentComplete = async () => {
-        const completeBooking = {
-            ...bookingData,
-            paymentStatus: "Paid",
-            paymentMethod: "Cash",
-            paymentDate: new Date().toISOString(),
-            startDateTime: new Date(bookingData.startDate).toISOString(),
-            endDateTime: new Date(bookingData.endDate).toISOString(),
-        }
-
         try {
-            addBooking(completeBooking)
-            await apiClient.post(`/api/customer/${customerId}/reservations`, completeBooking)
+            const fullName = `${formData.firstName} ${formData.middleName} ${formData.lastName}`.trim()
 
-            alert("Booking created successfully!")
+            const bookingDTO = {
+                totalAmountPaid: bookingData.totalPrice,
+                numberOfPassengers: 4,
+                renterFullName: fullName,
+                driverLicenseNumber: formData.licenseId,
+                startDateTime: new Date(bookingData.startDate).toISOString(),
+                endDateTime: new Date(bookingData.endDate).toISOString(),
+                reservationId: parseInt(reservation.id.replace(/\D/g, ""), 10),
+            }
+
+            await apiClient.post("/api/employee/bookings/add-booking", bookingDTO)
+
+            alert("✅ Booking created successfully!")
             window.location.href = "/admin/bookings"
             onClose()
         } catch (error) {
-            console.error("Error creating booking:", error)
+            console.error("❌ Error creating booking:", error)
             alert("Failed to create booking: " + (error.response?.data?.message || error.message))
         }
     }
@@ -152,6 +161,12 @@ export default function ReservationModal({ reservation, onClose }) {
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                 <div className="bg-white rounded-lg p-8">
                     <p>Loading reservation details...</p>
+                    <button
+                        onClick={onClose}
+                        className="mt-4 px-4 py-2 bg-gray-800 text-white rounded-md"
+                    >
+                        Close
+                    </button>
                 </div>
             </div>
         )
