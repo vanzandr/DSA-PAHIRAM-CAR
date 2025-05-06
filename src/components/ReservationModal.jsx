@@ -37,11 +37,15 @@ export default function ReservationModal({ car, onClose, onReserve }) {
     const securityDeposit = 5000
     const totalPrice = rentalCost + securityDeposit
 
-    const downloadContract = (e) => {
-        e.preventDefault()
-        // In a real application, this would download an actual contract file
-        alert("Contract template would be downloaded here")
+    const downloadContract = () => {
+        const link = document.createElement("a")
+        link.href = "/contract/lease_of_contract.pdf"
+        link.download = "Lease_Contract.pdf"
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
     }
+
 
     const validateForm = () => {
         const newErrors = {}
@@ -76,12 +80,12 @@ export default function ReservationModal({ car, onClose, onReserve }) {
                 createdAt: new Date().toISOString(),
                 // Include user information
                 customerName: currentUser
-                    ? `${currentUser.firstName} ${currentUser.middleName ? currentUser.middleName + " " : ""}${currentUser.surname}`
+                    ? `${currentUser.firstName} ${currentUser.middleName ? currentUser.middleName + " " : ""}${currentUser.lastName}`
                     : "Guest User",
                 firstName: currentUser?.firstName || "",
                 middleName: currentUser?.middleName || "",
-                surname: currentUser?.surname || "",
-                contactNumber: currentUser?.phone || "",
+                lastName: currentUser?.lastName || "",
+                mobilePhone: currentUser?.mobilePhone || "",
                 nationality: currentUser?.nationality || "Filipino",
             }
 
